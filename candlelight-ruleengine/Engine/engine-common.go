@@ -27,7 +27,7 @@ func (c Criteria) Check(game Game.Game) bool {
 const (
 	ModuleLogPrefix  = "CANDLELIGHT-RULEENGINE"
 	PackageLogPrefix = "Engine"
-	RedisAddress     = "localhost:6379"
+	RedisAddress     = "redis:6379"
 )
 
 var RDB = redis.NewClient(&redis.Options{

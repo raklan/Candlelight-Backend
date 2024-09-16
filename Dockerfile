@@ -1,22 +1,21 @@
-FROM golang:1.22
+FROM golang:1.22 AS builder
 
-RUN mkdir /candlelight-ruleengine
-RUN mkdir /candlelight-models
-
-RUN cd ..
-
-COPY /candlelight-ruleengine/ /candlelight-ruleengine
-COPY /candlelight-models/ /candlelight-models
-
+RUN mkdir /logs
 WORKDIR /app
 
-COPY go.mod go.sum ./
-RUN go mod download
+RUN mkdir ./candlelight-ruleengine
+RUN mkdir ./candlelight-models
+RUN mkdir ./candlelight-api
 
-COPY *.go ./
+COPY ./candlelight-ruleengine/ ./candlelight-ruleengine
+COPY ./candlelight-models/ ./candlelight-models
+COPY ./candlelight-api/ ./candlelight-api
 
-RUN go build -o /myapp
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -C ./candlelight-api -o myapp.exe
 
-USER 1000
+FROM scratch
+COPY --from=builder /app/candlelight-api/myapp.exe /app/
+COPY --from=builder /logs /logs
+EXPOSE 10000
 
-CMD ["/myapp"]
+ENTRYPOINT ["/app/myapp.exe"]

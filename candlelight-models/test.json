@@ -1,0 +1,169 @@
+{
+    "game": {
+        "id": "1",
+        "name": "YOU HAVE UNO",
+        "genre": "party",
+        "MaxPlayers": 4,
+        "Resources": [],
+        "Rules": {
+            "Id": 8,
+            "Constraints": [
+                {
+                    "id": "",
+                    "Allowed Actions": "Update Card Place Action",
+                    "FlipActionsArray": false,
+                    "ActivePhases": "Waiting on player input",
+                    "FlipActivePhases": false
+                },
+                {
+                    "id": "",
+                    "Allowed Actions": "Draw",
+                    "FlipActionsArray": false,
+                    "ActivePhases": "Must draw",
+                    "FlipActivePhases": false
+                }
+            ],
+            "EventActionPairs": [
+                {
+                    "Id": 12,
+                    "Trigger": "Play Card",
+                    "Actions": "Transition to Waiting"
+                }
+            ],
+            "ActionModifiers": [
+                {
+                    "Id": 8,
+                    "AffectedActions": {
+                        "Placements": [
+                            {
+                                "Id": 6
+                            }
+                        ]
+                    },
+                    "FlipAffectedActions": false,
+                    "ConstraintFunction": "(game.pieces.cardPlaces[0].placesCards[0].tags['color'] == pieces.decks[0].cards[0].tags['color']) || (pieces.decks[0].cards[0].tags['color'] == 'wild') || # is same"
+                },
+                {
+                    "Id": 8,
+                    "AffectedActions": {
+                        "PieceUpdates": [
+                            {"Id": 11}
+                        ]
+                    },
+                    "FlipAffectedActions": false,
+                    "ConstraintFunction": "top card is wild function"
+                }
+            ]
+        },
+        "Pieces": {
+            "Decks": [
+                {
+                    "Id": 2,
+                    "Name": "Main Deck",
+                    "Cards": [
+                        {
+                            "Id": 3,
+                            "Name": "Blue 1",
+                            "Description": "Blue and 1",
+                            "Value": 1,
+                            "Tags": {"color": "blue"}
+                        },
+                        {"One for each card": ""},
+                        {
+                            "Id": "",
+                            "Name": "wild",
+                            "Tags": {"color": "wild"}
+                        } 
+                    ]
+                }
+            ],
+            "CardPlaces": [
+                {
+                    "Id": 4,
+                    "Name": "Play Area",
+                    "PlacedCards": [],
+                    "Owner": "Game",
+                    "Tags": {"suit": "some color"}
+                }
+            ]
+        },
+        "Actions": {
+            "Moves": [],
+            "Trades": [],
+            "Transitions": [
+                {
+                    "Id": 13,
+                    "NewPhase": "Waiting on player phase"
+                }
+            ],
+            "Takes": [
+                {
+                    "Id": 5,
+                    "Name": "Draw",
+                    "Num": 1,
+                    "TakeFrom": {
+                        "Decks": [
+                            {
+                                "Id": 3
+                            }
+                        ],
+                        "CardPlaces": []
+                    },
+                    "TakeRandomly": false
+                }
+            ],
+            "Placements": [
+                {
+                    "Id": 6,
+                    "Name": "Play a Card",
+                    "Num": 1,
+                    "Targets": {
+                        "Decks": [],
+                        "CardPlaces": [
+                            {
+                                "Id": 4
+                            }
+                        ]
+                    },
+                    "Pieces": {
+                        "Decks": [
+                            {
+                                "Id": 2                            
+                            }
+                        ],
+                        "CardPlaces": []
+                    },
+                    "PlaceRandomly": false
+                }, 
+                {"One for each type of card":""}
+            ],
+            "PieceUpdates": [
+                {
+                    "Id": 11,
+                    "TargetPieces": {
+                        "Decks": [],
+                        "CardPlaces": [
+                            {"Id": 4}
+                        ]
+                    },
+                    "TagUpdates": {"suit": ""}
+                }
+            ]
+        },
+        "Phases": [
+            {
+                "Id": 14,
+                "Name": "Normal Play"
+            },
+            {
+                "Id": 15,
+                "Name": "Waiting on Player"
+            },
+            {
+                "Id": 16,
+                "Name": "Must Draw"
+            }
+        ],
+        "BeginningPhase": {}
+    }
+}

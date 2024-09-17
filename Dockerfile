@@ -11,11 +11,11 @@ COPY ./candlelight-ruleengine/ ./candlelight-ruleengine
 COPY ./candlelight-models/ ./candlelight-models
 COPY ./candlelight-api/ ./candlelight-api
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -C ./candlelight-api -o myapp.exe
+RUN CGO_ENABLED=0 GOOS=linux go build -C ./candlelight-api -o candlelightserver
 
 FROM scratch
-COPY --from=builder /app/candlelight-api/myapp.exe /app/
+COPY --from=builder /app/candlelight-api/candlelightserver.exe /app/
 COPY --from=builder /logs /logs
 EXPOSE 10000
 
-ENTRYPOINT ["/app/myapp.exe"]
+ENTRYPOINT ["/app/candlelightserver"]

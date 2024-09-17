@@ -14,7 +14,7 @@ COPY ./candlelight-api/ ./candlelight-api
 RUN CGO_ENABLED=0 GOOS=linux go build -C ./candlelight-api -o candlelightserver
 
 FROM scratch
-COPY --from=builder /app/candlelight-api/candlelightserver.exe /app/
+COPY --from=builder /app/candlelight-api/candlelightserver /app/
 COPY --from=builder /logs /logs
 EXPOSE 10000
 

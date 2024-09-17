@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand" //May want to change this to crypto/rand for better security, but for the prototype this is more than fine
+	"os"
 	"slices"
 	"time"
 
@@ -27,12 +28,19 @@ func (c Criteria) Check(game Game.Game) bool {
 const (
 	ModuleLogPrefix  = "CANDLELIGHT-RULEENGINE"
 	PackageLogPrefix = "Engine"
-	RedisAddress     = "redis:6379"
 )
 
 var RDB = redis.NewClient(&redis.Options{
-	Addr: RedisAddress,
+	Addr: getRedisAddress(),
 })
+
+func getRedisAddress() string {
+	environ := os.Getenv("REDIS_ADDRESS")
+	if environ == "" {
+		return "localhost:6379"
+	}
+	return environ
+}
 
 // Generates an ID for something. To ensure it's unique, I'm just using the current UNIX time in
 // milliseconds with a random set of 10 characters appended to the end. Will probably need to change to something more random later

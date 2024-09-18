@@ -6,9 +6,7 @@ import (
 	"candlelight-models/Views"
 )
 
-/*Changelog
--Removed Rules in favor of piece-by-piece rules
-*/
+//If you're looking at this file looking for how GameDefs are saved, you're in the wrong spot. Ignore GameV2
 
 type GameV2 struct {
 	Id             string             `json:"id"`

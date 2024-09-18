@@ -49,9 +49,13 @@ type GameResource struct {
 
 // A collection of Pieces to display to a player.
 type View struct {
-	Id                string          `json:"id"`
-	OwnerPlayerNumber int             `json:"ownerPlayerNumber"`
-	Pieces            Pieces.PieceSet `json:"pieces"`
+	//An Id for this View. Used to fill in ParentView on all GamePieces belonging to this View
+	Id string `json:"id"`
+	//The PlayerNumber of the Owner of this view. 0 is a special, reserved number for the Game itself. Any
+	//view with OwnerPlayerNumber == 0 is public and accessible by all Players
+	OwnerPlayerNumber int `json:"ownerPlayerNumber"`
+	//The PieceSet belonging to (and rendered within) this View
+	Pieces Pieces.PieceSet `json:"pieces"`
 }
 
 func (game Game) ViewsForPlayer(playerNum int) []View {

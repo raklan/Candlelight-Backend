@@ -22,10 +22,13 @@ type GamePiece struct {
 	Name string `json:"name"`
 	//A set of Player-defined properties for this Piece. Should have the form
 	// property: value in JSON
-	Tags       map[string]string `json:"tags"`
-	Position   Position          `json:"position"`
-	Style      Style             `json:"style"`
-	ParentView string            `json:"parentView"`
+	Tags map[string]string `json:"tags"`
+	//Position data for this GamePiece. See Position struct
+	Position Position `json:"position"`
+	//Style data for this GamePiece. See Style struct
+	Style Style `json:"style"`
+	//Id of the View this GamePiece belongs to. Used primarily to match up this piece to the correct view when it appears in a changelog during gameplay
+	ParentView string `json:"parentView"`
 }
 
 // Position data for a Piece
@@ -43,7 +46,8 @@ type Style struct {
 	//A map of CSS rules, where the Key is the name of the rule and the Value is the rule.
 	//For example: Rules["color"] = "red" is equivalent to the CSS {color: red}
 	Rules map[string]string `json:"rules"`
-	Color []int             `json:"color"`
+	//The [R,G,B,A] values for this card. As such, this array should be exactly 4 entries, in the order described
+	Color []int `json:"color"`
 }
 
 // An outline for pieces that can contain other GamePieces. Whitelist is a dictionary
@@ -77,8 +81,8 @@ type Card struct {
 
 /*
 A place where a player can play their
-cards. This might be shared between all players (Owner == "game" or something) e.g. Uno
-or might be owned by one specific player e.g. Cover Your Assets
+cards. This might be shared between all players  (e.g. Uno)
+or might be owned by one specific player (e.g. Cover Your Assets)
 */
 type CardPlace struct {
 	GamePiece

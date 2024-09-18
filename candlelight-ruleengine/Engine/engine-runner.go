@@ -465,8 +465,7 @@ func LoadLobbyFromRedis(roomCode string) (Session.Lobby, error) {
 	return lobby, nil
 }
 
-// Given a GameDefinition's ID and a player name, creates and saves a new lobby for that player's game, returning the Lobby's room code. The player is automatically added
-// to the Lobby
+// Given a GameDefinition's ID and a player name, creates and saves a new lobby for that player's game, returning the Lobby's room code.
 func CreateRoom(gameDefId string) (string, error) {
 	funcLogPrefix := "==CreateRoom=="
 	defer LogUtil.EnsureLogPrefixIsReset()
@@ -506,6 +505,8 @@ func CreateRoom(gameDefId string) (string, error) {
 	return roomCode, nil
 }
 
+// Creates a Player object for the given PlayerName and attempts to add them to the lobby with the given RoomCode. On Success, returns the new state
+// of the lobby, the Player's assigned Id, and any error that occurred
 func JoinRoom(roomCode string, playerName string) (Session.Lobby, string, error) {
 	funcLogPrefix := "==JoinRoom=="
 	defer LogUtil.EnsureLogPrefixIsReset()
@@ -525,7 +526,7 @@ func JoinRoom(roomCode string, playerName string) (Session.Lobby, string, error)
 		return Session.Lobby{}, "", fmt.Errorf("ERROR: Lobby's max player count {%d} already reached", lobby.MaxPlayers)
 	}
 
-	thisPlayer := CreatePlayerObject(playerName)
+	thisPlayer := createPlayerObject(playerName)
 
 	//Create a copy, in case anything goes wrong
 	updatedLobby := lobby
@@ -552,7 +553,7 @@ func JoinRoom(roomCode string, playerName string) (Session.Lobby, string, error)
 	return saved, thisPlayer.Id, nil
 }
 
-func CreatePlayerObject(name string) Player.Player {
+func createPlayerObject(name string) Player.Player {
 	funcLogPrefix := "==CreatePlayerObject=="
 	LogUtil.SetLogPrefix(ModuleLogPrefix, PackageLogPrefix)
 	defer LogUtil.EnsureLogPrefixIsReset()

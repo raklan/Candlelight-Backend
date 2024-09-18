@@ -48,9 +48,15 @@ type PlayerState struct {
 	Player Player.Player `json:"player"`
 }
 
+// A struct containing any and all objects from a PieceSet that were affected by a SubmittedAction, as well
+// as those objects' new states. One of these is generated and returned any time a Client submits an action,
+// regardless of whether the action was successful.
 type Changelog struct {
-	Decks       []Pieces.Deck
-	CardPlaces  []Pieces.CardPlace
+	//Decks affected, represented in their updated state
+	Decks []Pieces.Deck
+	//CardPlaces affected, represented in their updated state
+	CardPlaces []Pieces.CardPlace
+	//Orphan Decks affected, represented in their updated state
 	OrphanDecks []Pieces.Deck
 }
 
@@ -146,5 +152,5 @@ type EndTurn struct {
 // One of the possible Turn objects. This is solely for backend reference, and you should not have
 // to ever think about this on the frontend
 type Turn interface {
-	Execute(gameState *GameState) (Pieces.PieceSet, error)
+	Execute(gameState *GameState, player Player.Player) (Changelog, error)
 }

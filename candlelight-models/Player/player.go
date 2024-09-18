@@ -8,7 +8,7 @@ type Player struct {
 	Id string `json:"id"`
 	//Display name of this Player. Should be shown to other players in-game
 	Name string `json:"name"`
-	//All the Pieces this Player currently has
+	//All the Views belonging to this Player, with their associated PieceSets
 	Hand []Game.View `json:"hand"`
 	//All the Resources this Player currently has
 	Resources []PlayerResource `json:"resources"`

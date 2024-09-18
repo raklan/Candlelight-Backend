@@ -48,6 +48,12 @@ type PlayerState struct {
 	Player Player.Player `json:"player"`
 }
 
+type Changelog struct {
+	Decks       []Pieces.Deck
+	CardPlaces  []Pieces.CardPlace
+	OrphanDecks []Pieces.Deck
+}
+
 // This is the way the frontend will send data to the backend during gameplay. They will
 // send one of these objects, then the Rule Engine will take it, perform any updates to the
 // internal model of the Game, then respond with a GameState

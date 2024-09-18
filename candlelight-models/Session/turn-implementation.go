@@ -8,11 +8,11 @@ import (
 	"slices"
 )
 
-func (mt MoveTurn) Execute(gameState *GameState, player Player.Player) (Pieces.PieceSet, error) {
+func (mt MoveTurn) Execute(gameState *GameState, player Player.Player) (Changelog, error) {
 	//Make sure the Player trying to play this is tracked in the gameState, and if so, grab his state off
 	//the gameState to make updates there
 	currentPlayerState := findPlayerInGameState(gameState, &player)
-	changelog := Pieces.PieceSet{}
+	changelog := Changelog{}
 
 	if currentPlayerState == nil {
 		return changelog, fmt.Errorf("ERROR: Could not find PlayerState within GameState for given player")
@@ -41,9 +41,9 @@ func (mt MoveTurn) Execute(gameState *GameState, player Player.Player) (Pieces.P
 	return changelog, nil
 }
 
-func (puT PieceUpdateTurn) Execute(gameState *GameState, player Player.Player) (Pieces.PieceSet, error) {
+func (puT PieceUpdateTurn) Execute(gameState *GameState, player Player.Player) (Changelog, error) {
 	currentPlayerState := findPlayerInGameState(gameState, &player)
-	changelog := Pieces.PieceSet{}
+	changelog := Changelog{}
 
 	if currentPlayerState == nil {
 		return changelog, fmt.Errorf("ERROR: Could not find PlayerState within GameState for given player")
@@ -74,10 +74,10 @@ func (puT PieceUpdateTurn) Execute(gameState *GameState, player Player.Player) (
 	return changelog, fmt.Errorf("could not find target with TargetPieceId=={%s}", puT.TargetPieceId)
 }
 
-func (pt PlacementTurn) Execute(gameState *GameState, player Player.Player) (Pieces.PieceSet, error) {
+func (pt PlacementTurn) Execute(gameState *GameState, player Player.Player) (Changelog, error) {
 
 	currentPlayerState := findPlayerInGameState(gameState, &player)
-	changelog := Pieces.PieceSet{}
+	changelog := Changelog{}
 
 	if currentPlayerState == nil {
 		return changelog, fmt.Errorf("ERROR: Could not find PlayerState within GameState for given player")
@@ -106,9 +106,9 @@ func (pt PlacementTurn) Execute(gameState *GameState, player Player.Player) (Pie
 	return changelog, nil
 }
 
-func (tt TakeTurn) Execute(gameState *GameState, player Player.Player) (Pieces.PieceSet, error) {
+func (tt TakeTurn) Execute(gameState *GameState, player Player.Player) (Changelog, error) {
 	currentPlayerState := findPlayerInGameState(gameState, &player)
-	changelog := Pieces.PieceSet{}
+	changelog := Changelog{}
 
 	if currentPlayerState == nil {
 		return changelog, fmt.Errorf("ERROR: Could not find PlayerState within GameState for given player")
@@ -141,20 +141,20 @@ func (tt TakeTurn) Execute(gameState *GameState, player Player.Player) (Pieces.P
 	//Add card to player's Orphaned cards
 	currentPlayerState.Player.Hand[0].Pieces.Orphans.Cards = append(currentPlayerState.Player.Hand[0].Pieces.Orphans.Cards, copy)
 	addCardContainerToChangelog(&changelog, target)
-	changelog.Orphans.Cards = append(changelog.Orphans.Cards, copy)
+	changelog.OrphanDecks = append(changelog.OrphanDecks, currentPlayerState.Player.Hand[0].Pieces.Orphans)
 
 	return changelog, nil
 
 }
 
-func (mt TradeTurn) Execute(gameState *GameState, player Player.Player) (Pieces.PieceSet, error) {
-	return Pieces.PieceSet{}, fmt.Errorf("TradeTurn is not implemented yet")
+func (mt TradeTurn) Execute(gameState *GameState, player Player.Player) (Changelog, error) {
+	return Changelog{}, fmt.Errorf("TradeTurn is not implemented yet")
 }
 
-func (tt TransitionTurn) Execute(gameState *GameState, player Player.Player) (Pieces.PieceSet, error) {
+func (tt TransitionTurn) Execute(gameState *GameState, player Player.Player) (Changelog, error) {
 
 	currentPlayerState := findPlayerInGameState(gameState, &player)
-	changelog := Pieces.PieceSet{}
+	changelog := Changelog{}
 
 	if currentPlayerState == nil {
 		return changelog, fmt.Errorf("ERROR: Could not find PlayerState within GameState for given player")
@@ -333,7 +333,7 @@ func findCardContainerInGame(targetId string, gameState *GameState) Pieces.Card_
 	return nil
 }
 
-func addCardContainerToChangelog(changelog *Pieces.PieceSet, container Pieces.Card_Container) {
+func addCardContainerToChangelog(changelog *Changelog, container Pieces.Card_Container) {
 	if deckPointer, ok := container.(*Pieces.Deck); ok {
 		deck := *deckPointer
 		changelog.Decks = append(changelog.Decks, deck)

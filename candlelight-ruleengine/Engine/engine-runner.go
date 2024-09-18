@@ -4,7 +4,6 @@ import (
 	"candlelight-api/LogUtil"
 	"candlelight-models/Actions"
 	"candlelight-models/Game"
-	"candlelight-models/Pieces"
 	"candlelight-models/Player"
 	"candlelight-models/Session"
 	"slices"
@@ -325,12 +324,12 @@ func DeterminePlayerAllowedActions(gameState *Session.GameState, gameDef *Game.G
 
 // Submits an Action to the GameState with id == [gameId]. Will always return some GameState, even if something goes wrong, in which case [error] will not be nil.
 // If the action is not allowed, [error] will indicate so, and it will simply return the GameState without any changes
-func SubmitAction(gameId string, action Session.SubmittedAction) (Pieces.PieceSet, error) {
+func SubmitAction(gameId string, action Session.SubmittedAction) (Session.Changelog, error) {
 	funcLogPrefix := "==SubmitAction=="
 	defer LogUtil.EnsureLogPrefixIsReset()
 	LogUtil.SetLogPrefix(ModuleLogPrefix, PackageLogPrefix)
 
-	changelog := Pieces.PieceSet{}
+	changelog := Session.Changelog{}
 
 	//Grab last cached gameState
 	gameState, err := GetCachedGameStateFromRedis(gameId)

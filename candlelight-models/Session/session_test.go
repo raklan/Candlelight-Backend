@@ -586,7 +586,7 @@ func TestTakeTurn_Execute(t *testing.T) {
 						t.Errorf("Changelog recorded changes! len(Decks) == %d, len(CardPlaces) == %d", len(changelog.Decks), len(changelog.CardPlaces))
 					}
 				} else {
-					if !slices.ContainsFunc(changelog.Orphans.Cards, func(c Pieces.Card) bool {
+					if !slices.ContainsFunc(changelog.OrphanDecks[0].Cards, func(c Pieces.Card) bool {
 						return c.Id == gameState.PlayerStates[0].Player.Hand[0].Pieces.Orphans.Cards[0].Id
 					}) {
 						t.Error("Card player took not found in changelog!")

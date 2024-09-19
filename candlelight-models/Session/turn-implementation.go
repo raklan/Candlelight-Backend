@@ -93,14 +93,19 @@ func (pt PlacementTurn) Execute(gameState *GameState, player Player.Player) (Cha
 		return changelog, fmt.Errorf("couldn't find target with targetId == {%s} in Game", pt.TargetId)
 	}
 
-	removedCard, removedFrom := attemptToRemoveCardFromPlayer(pt.PieceId, &currentPlayerState.Player)
+	removedCard, removedFrom, foundInOrphans := attemptToRemoveCardFromPlayer(pt.PieceId, &currentPlayerState.Player)
 	if removedCard == nil {
 		return changelog, fmt.Errorf("couldn't find card with PieceId == {%s} in player's hand", pt.PieceId)
 	}
 
 	target.AddCardToCollection(*removedCard)
 
-	addCardContainerToChangelog(&changelog, removedFrom)
+	if foundInOrphans { //TODO: This is super hacky and I don't like it
+		asDeck := removedFrom.(*Pieces.Deck)
+		changelog.OrphanDecks = append(changelog.OrphanDecks, *asDeck)
+	} else {
+		addCardContainerToChangelog(&changelog, removedFrom)
+	}
 	addCardContainerToChangelog(&changelog, target)
 
 	return changelog, nil
@@ -221,7 +226,7 @@ func findPlayerInGameState(gameState *GameState, player *Player.Player) *PlayerS
 // 	return nil
 // }
 
-func attemptToRemoveCardFromPlayer(pieceId string, player *Player.Player) (*Pieces.Card, Pieces.Card_Container) {
+func attemptToRemoveCardFromPlayer(pieceId string, player *Player.Player) (*Pieces.Card, Pieces.Card_Container, bool) {
 	for i := range player.Hand {
 		//Try to find the card in their CardPlaces
 		for index := range player.Hand[i].Pieces.CardPlaces {
@@ -232,7 +237,7 @@ func attemptToRemoveCardFromPlayer(pieceId string, player *Player.Player) (*Piec
 				//card at the address pointed to by foundCard
 				copy := *foundCard
 				cardPlace.RemoveCardFromCollection(*foundCard)
-				return &copy, cardPlace
+				return &copy, cardPlace, false
 			}
 		}
 
@@ -244,7 +249,7 @@ func attemptToRemoveCardFromPlayer(pieceId string, player *Player.Player) (*Piec
 				//card at the address pointed to by foundCard
 				copy := *foundCard
 				deck.RemoveCardFromCollection(*foundCard)
-				return &copy, deck
+				return &copy, deck, false
 			}
 		}
 
@@ -252,11 +257,11 @@ func attemptToRemoveCardFromPlayer(pieceId string, player *Player.Player) (*Piec
 		if foundCard != nil {
 			copy := *foundCard
 			player.Hand[i].Pieces.Orphans.RemoveCardFromCollection(*foundCard)
-			return &copy, &player.Hand[i].Pieces.Orphans
+			return &copy, &player.Hand[i].Pieces.Orphans, true
 		}
 	}
 
-	return nil, nil
+	return nil, nil, false
 }
 
 // func attemptToRemoveCardFromGame(pieceId string, gameState *GameState) *Views.Card {

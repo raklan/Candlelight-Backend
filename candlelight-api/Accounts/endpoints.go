@@ -47,36 +47,36 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, string(asJson))
 }
 
-func ChangePassword(w http.ResponseWriter, r *http.Request) { //TODO: Currently no authentication for this
-	funcLogPrefix := "==ChangePassword=="
-	defer LogUtil.EnsureLogPrefixIsReset()
-	LogUtil.SetLogPrefix(LogUtil.ModuleLogPrefix, PackagePrefix)
+// func ChangePassword(w http.ResponseWriter, r *http.Request) { //TODO: Currently no authentication for this
+// 	funcLogPrefix := "==ChangePassword=="
+// 	defer LogUtil.EnsureLogPrefixIsReset()
+// 	LogUtil.SetLogPrefix(LogUtil.ModuleLogPrefix, PackagePrefix)
 
-	log.Printf("%s received request to change password!", funcLogPrefix)
+// 	log.Printf("%s received request to change password!", funcLogPrefix)
 
-	d := json.NewDecoder(r.Body)
-	req := Accounts.User{}
+// 	d := json.NewDecoder(r.Body)
+// 	req := Accounts.User{}
 
-	err := d.Decode(&req)
-	if err != nil {
-		LogUtil.LogError(funcLogPrefix, err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+// 	err := d.Decode(&req)
+// 	if err != nil {
+// 		LogUtil.LogError(funcLogPrefix, err)
+// 		http.Error(w, err.Error(), http.StatusBadRequest)
+// 		return
+// 	}
 
-	saved, err := Accounts.ChangePassword(req)
+// 	saved, err := Accounts.ChangePassword(req)
 
-	if err != nil {
-		LogUtil.LogError(funcLogPrefix, err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+// 	if err != nil {
+// 		LogUtil.LogError(funcLogPrefix, err)
+// 		http.Error(w, err.Error(), http.StatusBadRequest)
+// 		return
+// 	}
 
-	log.Printf("%s Save successful, sending response", funcLogPrefix)
+// 	log.Printf("%s Save successful, sending response", funcLogPrefix)
 
-	asJson, _ := json.Marshal(saved)
-	fmt.Fprint(w, string(asJson))
-}
+// 	asJson, _ := json.Marshal(saved)
+// 	fmt.Fprint(w, string(asJson))
+// }
 
 func Login(w http.ResponseWriter, r *http.Request) {
 	funcLogPrefix := "==Login=="

@@ -64,7 +64,7 @@ func registerPathHandlers(mux *http.ServeMux) {
 	//Account-related Requests
 	mux.HandleFunc("/createAccount", Accounts.CreateAccount)
 	mux.HandleFunc("/login", Accounts.Login)
-	mux.HandleFunc("/changePassword", Accounts.ChangePassword)
+	//mux.HandleFunc("/changePassword", Accounts.ChangePassword)
 }
 
 // Simple heartbeat endpoint to test if the server is up and running

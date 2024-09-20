@@ -236,9 +236,204 @@ func TestRandomCard(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			card := tt.container.PickRandomCardFromCollection()
+
+			if card == nil {
+				t.Error("Should have gotten a card but didn't!")
+			}
+		})
+	}
+}
+
+func TestCardIsAllowed(t *testing.T) {
+	var tests = []struct {
+		name            string
+		container       Card_Container
+		card            Card
+		shouldBeAllowed bool
+	}{
+		{
+			name: "Deck Valid Card",
+			container: &Deck{
+				GamePiece: GamePiece{
+					Id:   "emptydeck",
+					Name: "Empty Deck",
+					Tags: map[string]string{},
+				},
+				PieceContainer: PieceContainer{
+					TagsWhitelist: map[string][]string{
+						"color": []string{"red"},
+					},
+				},
+				Cards: []Card{},
+			},
+			card: Card{
+				GamePiece: GamePiece{
+					Id:   "dummycard",
+					Name: "Dummy Card",
+					Tags: map[string]string{
+						"color": "red",
+					},
+				},
+				Description: "A dummy card",
+				Value:       0,
+			},
+			shouldBeAllowed: true,
+		},
+		{
+			name: "Deck Invalid Card",
+			container: &Deck{
+				GamePiece: GamePiece{
+					Id:   "emptydeck",
+					Name: "Empty Deck",
+					Tags: map[string]string{},
+				},
+				PieceContainer: PieceContainer{
+					TagsWhitelist: map[string][]string{
+						"color": []string{"red"},
+					},
+				},
+				Cards: []Card{},
+			},
+			card: Card{
+				GamePiece: GamePiece{
+					Id:   "dummycard",
+					Name: "Dummy Card",
+					Tags: map[string]string{
+						"color": "blue",
+					},
+				},
+				Description: "A dummy card",
+				Value:       0,
+			},
+			shouldBeAllowed: false,
+		},
+		{
+			name: "CardPlace Valid Card",
+			container: &CardPlace{
+				GamePiece: GamePiece{
+					Id:   "emptydeck",
+					Name: "Empty Deck",
+					Tags: map[string]string{},
+				},
+				PieceContainer: PieceContainer{
+					TagsWhitelist: map[string][]string{
+						"color": []string{"red"},
+					},
+				},
+				PlacedCards: []Card{},
+			},
+			card: Card{
+				GamePiece: GamePiece{
+					Id:   "dummycard",
+					Name: "Dummy Card",
+					Tags: map[string]string{
+						"color": "red",
+					},
+				},
+				Description: "A dummy card",
+				Value:       0,
+			},
+			shouldBeAllowed: true,
+		},
+		{
+			name: "CardPlace Invalid Card",
+			container: &CardPlace{
+				GamePiece: GamePiece{
+					Id:   "emptydeck",
+					Name: "Empty Deck",
+					Tags: map[string]string{},
+				},
+				PieceContainer: PieceContainer{
+					TagsWhitelist: map[string][]string{
+						"color": []string{"red"},
+					},
+				},
+				PlacedCards: []Card{},
+			},
+			card: Card{
+				GamePiece: GamePiece{
+					Id:   "dummycard",
+					Name: "Dummy Card",
+					Tags: map[string]string{
+						"color": "blue",
+					},
+				},
+				Description: "A dummy card",
+				Value:       0,
+			},
+			shouldBeAllowed: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			isAllowed := tt.container.CardIsAllowed(&tt.card)
+
+			if tt.shouldBeAllowed != isAllowed {
+				t.Fatalf("Mismatch in whether the card is allowed! Expected: %t, Got %t", tt.shouldBeAllowed, isAllowed)
+			}
 
 		})
 	}
+}
+
+func TestCollectionLength(t *testing.T) {
+	var tests = []struct {
+		name           string
+		container      Card_Container
+		expectedLength int
+	}{
+		{
+			name: "Deck With 1 Card",
+			container: &Deck{
+				Cards: []Card{getDummyCard()},
+			},
+			expectedLength: 1,
+		},
+		{
+			name: "Deck With 3 Cards",
+			container: &Deck{
+				Cards: []Card{getDummyCard(), getDummyCard(), getDummyCard()},
+			},
+			expectedLength: 3,
+		},
+		{
+			name: "CardPlace With 1 Card",
+			container: &CardPlace{
+				PlacedCards: []Card{getDummyCard()},
+			},
+			expectedLength: 1,
+		},
+		{
+			name: "CardPlace With 3 Cards",
+			container: &CardPlace{
+				PlacedCards: []Card{getDummyCard(), getDummyCard(), getDummyCard()},
+			},
+			expectedLength: 3,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.container.CollectionLength() != tt.expectedLength {
+				t.Fatalf("Mismatch in collection length! Expected %d, Got %d", tt.expectedLength, tt.container.CollectionLength())
+			}
+		})
+	}
+}
+
+func TestPieceSetCombine(t *testing.T) {
+	ps1 := PieceSet{
+		Decks:      []Deck{*getEmptyDeck()},
+		CardPlaces: []CardPlace{*getEmptyCardPlace()},
+	}
+	ps2 := PieceSet{
+		Decks:      []Deck{*getDeckWithCards()},
+		CardPlaces: []CardPlace{*getCardPlaceWithCards()},
+	}
+
+	ps1.Combine(ps2)
 }
 
 //==================HELPER FUNCTIONS=================

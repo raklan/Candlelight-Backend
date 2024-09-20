@@ -175,7 +175,7 @@ func generateJSON(w http.ResponseWriter, r *http.Request) {
 							GamePiece: Pieces.GamePiece{
 								Id:         Engine.GenerateId(),
 								ParentView: sharedViewId,
-								Name:       "Ancient Deck",
+								Name:       "Primitive Deck",
 								Tags:       map[string]string{},
 								Position:   Pieces.Position{X: 0, Y: 0},
 								Style:      Pieces.Style{},

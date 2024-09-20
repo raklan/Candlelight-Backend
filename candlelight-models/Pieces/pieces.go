@@ -35,10 +35,10 @@ type GamePiece struct {
 type Position struct {
 	//The X position of this Piece. If this Piece is a child
 	//of some other Piece, this is relative to the parent
-	X int `json:"x"`
+	X float32 `json:"x"`
 	//The Y position of this Piece. If this Piece is a child
 	//of some other Piece, this is relative to the parent
-	Y int `json:"y"`
+	Y float32 `json:"y"`
 }
 
 // A list of CSS rules to apply to a Piece. Super rough, but I figured I'd throw it in and see what everyone thinks

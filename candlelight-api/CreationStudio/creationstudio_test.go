@@ -1,8 +1,7 @@
-package main
+package CreationStudio
 
 import (
 	"bytes"
-	"candlelight-api/CreationStudio"
 	"candlelight-models/Game"
 	"candlelight-ruleengine/Engine"
 	"encoding/json"
@@ -55,7 +54,7 @@ func Test_Studio_GET(t *testing.T) {
 			request := httptest.NewRequest(http.MethodGet, "/studio"+tt.queryString, nil)
 			response := httptest.NewRecorder()
 
-			CreationStudio.Studio(response, request)
+			Studio(response, request)
 
 			//Check status code
 			if response.Result().StatusCode != tt.expectedStatusCode {
@@ -117,7 +116,7 @@ func Test_Studio_POST(t *testing.T) {
 			}
 			response := httptest.NewRecorder()
 
-			CreationStudio.Studio(response, request)
+			Studio(response, request)
 
 			if response.Result().StatusCode != tt.expectedStatusCode {
 				t.Fatalf("Unexpected Status Code returned! Expected {%d}, Got {%d}", tt.expectedStatusCode, response.Result().StatusCode)
@@ -191,7 +190,7 @@ func Test_Studio_DELETE(t *testing.T) {
 			request := httptest.NewRequest(http.MethodDelete, "/studio"+tt.queryString, nil)
 			response := httptest.NewRecorder()
 
-			CreationStudio.Studio(response, request)
+			Studio(response, request)
 
 			//Check status code
 			if response.Result().StatusCode != tt.expectedStatusCode {
@@ -223,10 +222,44 @@ func Test_Studio_DELETE(t *testing.T) {
 	}
 }
 
+func Test_GetAll(t *testing.T) {
+	ensureDummyGameExists()
+	var tests = []struct {
+		name        string
+		queryString string
+	}{
+		{
+			name:        "Get Slimmed",
+			queryString: "?slimmed=true",
+		},
+		{
+			name:        "Get Slimmed false",
+			queryString: "?slimmed=false",
+		},
+		{
+			name:        "Get Slimmed Unknown Value",
+			queryString: "?slimmed=helloworld",
+		},
+		{
+			name:        "No Query String",
+			queryString: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodGet, "/allGames"+tt.queryString, nil)
+			response := httptest.NewRecorder()
+
+			GetAllGames(response, request)
+		})
+	}
+}
+
 // Generates the dummy game, if it doesn't already exist
 func ensureDummyGameExists() {
 	request := httptest.NewRequest(http.MethodGet, "/dummy", nil)
 	response := httptest.NewRecorder()
 
-	generateJSON(response, request)
+	GenerateJSON(response, request)
 }

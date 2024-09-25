@@ -42,7 +42,11 @@ func startServer() {
 	})
 	handler := c.Handler(mux)
 
-	http.ListenAndServe(":10000", handler)
+	http.ListenAndServe(":80", handler)
+	// err = http.ListenAndServeTLS(":10000", "./candlelight-api/server.crt", "./candlelight-api/server.key", handler)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 }
 func registerPathHandlers(mux *http.ServeMux) {
 	mux.HandleFunc("/", heartbeat)
@@ -66,5 +70,6 @@ func registerPathHandlers(mux *http.ServeMux) {
 // Simple heartbeat endpoint to test if the server is up and running
 func heartbeat(w http.ResponseWriter, r *http.Request) {
 	log.Println("==Heartbeat==: Returning dummy response...")
+	w.Header().Add("Access-Control-Allow-Origin", "*")
 	fmt.Fprintf(w, "Buh-dump, buh-dump")
 }

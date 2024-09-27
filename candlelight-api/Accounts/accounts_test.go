@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/go-redis/redis/v8"
 )
 
 func Test_CreateAccount(t *testing.T) {
@@ -90,6 +92,13 @@ func Test_CreateAccount(t *testing.T) {
 }
 
 func Test_Login(t *testing.T) {
+
+	//Ensure test user exists
+	_, err := Engine.RDB.Get(Engine.RDB.Context(), "user:ryan").Result()
+	if err == redis.Nil {
+		Accounts.SaveNewAccount(Accounts.User{Username: "ryan", Password: "pass123"})
+	}
+
 	tests := []struct {
 		name               string
 		expectedStatusCode int

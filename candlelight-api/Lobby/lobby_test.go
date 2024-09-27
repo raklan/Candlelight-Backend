@@ -1,6 +1,7 @@
 package Lobby
 
 import (
+	"candlelight-api/CreationStudio"
 	"candlelight-models/Player"
 	"candlelight-ruleengine/Engine"
 	"encoding/json"
@@ -14,6 +15,7 @@ import (
 )
 
 func TestHostLobby(t *testing.T) {
+	ensureDummyGameExists()
 	tests := []struct {
 		name          string
 		queryString   string
@@ -130,7 +132,7 @@ func TestHostLobby(t *testing.T) {
 }
 
 func TestJoinLobby(t *testing.T) {
-
+	ensureDummyGameExists()
 	roomCode, err := Engine.CreateRoom("game123")
 	if err != nil {
 		t.Fatal("Couldn't Create Lobby for dummy game! Ensure function createJSON has been called or a GET request has been sent to /dummy")
@@ -251,7 +253,7 @@ func TestJoinLobby(t *testing.T) {
 }
 
 func TestRejoinLobby(t *testing.T) { //TODO: Tests don't take their player out of the lobby so we're hitting the max player count
-
+	ensureDummyGameExists()
 	roomCode, err := Engine.CreateRoom("game123")
 	if err != nil {
 		t.Fatal("Couldn't Create Lobby for dummy game! Ensure function createJSON has been called or a GET request has been sent to /dummy")
@@ -397,4 +399,12 @@ func testRecovery(t *testing.T, dbCleanupKey string) {
 		}
 		t.Fatal("Go panicked")
 	}
+}
+
+// Generates the dummy game, if it doesn't already exist
+func ensureDummyGameExists() {
+	request := httptest.NewRequest(http.MethodGet, "/dummy", nil)
+	response := httptest.NewRecorder()
+
+	CreationStudio.GenerateJSON(response, request)
 }

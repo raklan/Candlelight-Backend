@@ -1,6 +1,6 @@
 webcontid=$(docker ps -aqf "name=candlelight-backend-web-1")
 rediscontid=$(docker ps -aqf "name=candlelight-backend-redis-1")
-imageid=$(docker images capstone-cs.eng.utah.edu:5050/candlelight/candlelight-backend --format "{{.ID}}")
+imageid=$(docker images candlelight-backend --format "{{.ID}}")
 
 docker stop "$webcontid" && docker rm "$webcontid"
 docker stop "$rediscontid" && docker rm "$rediscontid"

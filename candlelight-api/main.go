@@ -70,6 +70,5 @@ func registerPathHandlers(mux *http.ServeMux) {
 // Simple heartbeat endpoint to test if the server is up and running
 func heartbeat(w http.ResponseWriter, r *http.Request) {
 	log.Println("==Heartbeat==: Returning dummy response...")
-	w.Header().Add("Access-Control-Allow-Origin", "*")
 	fmt.Fprintf(w, "Buh-dump, buh-dump")
 }

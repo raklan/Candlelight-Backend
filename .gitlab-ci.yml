@@ -17,30 +17,28 @@
 # https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Getting-Started.gitlab-ci.yml
 
 stages:          # List of stages for jobs, and their order of execution
-  - build
   - test
+  - build
   - deploy
 
-build-job:       # This job runs in the build stage, which runs first.
-  stage: build
-  script:
-    - echo "Compiling the code..."
-    - echo "Compile complete."
-
-unit-test-job:   # This job runs in the test stage.
-  stage: test    # It only starts when the job in the build stage completes successfully.
+unit-test-job:
+  stage: test   
   script:
     - echo "Running unit tests..."
-    # - go test ./candlelight-api/...
-    # - go test ./candlelight-ruleengine/...
-    # - go test ./candlelight-models/...
-    # temporarily commented out for testing of pipeline
+    - go test ./candlelight-api/...
+    - go test ./candlelight-ruleengine/...
+    - go test ./candlelight-models/...
 
-deploy-job:      # This job runs in the deploy stage.
-  stage: deploy  # It only runs when *both* jobs in the test stage complete successfully.
-  environment: production
+build-job:       # This job runs in the build stage, and only runs if the test job completes successfully
+  stage: build
   script:
+    - echo "Building and pushing new docker image..."
     - docker login -u candlelightdevteam -p dckr_pat_Vag7IPMiBX8qg23Z98Mu45jiS3M
     - docker build --no-cache -t candlelightdevteam/candlelight-backend:latest .
     - docker push candlelightdevteam/candlelight-backend:latest
-    #- ssh ec2-3-19-232-179.us-east-2.compute.amazonaws.com -i ~/.ssh/candlelight-dev-login.pem -l ec2-user 'dir'
+
+deploy-job:      #SSH into EC2 instance and run the backend-rebuild script, which will stop server, remove old container/image, pull updated image, and rerun the server. This wips the DB since we don't have a volume set up
+  stage: deploy  
+  environment: production
+  script:
+    - ssh ec2-3-19-232-179.us-east-2.compute.amazonaws.com -i ~/.ssh/candlelight-dev-login.pem -l ec2-user 'sudo bash ./candlelight/candlelight-backend/rebuildbackend.sh'

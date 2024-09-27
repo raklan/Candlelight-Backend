@@ -42,7 +42,7 @@ func startServer() {
 	})
 	handler := c.Handler(mux)
 
-	http.ListenAndServe(":80", handler)
+	http.ListenAndServe(":10000", handler)
 	// err = http.ListenAndServeTLS(":10000", "./candlelight-api/server.crt", "./candlelight-api/server.key", handler)
 	// if err != nil {
 	// 	log.Fatal(err)

@@ -31,7 +31,9 @@ unit-test-job:   # This job runs in the test stage.
   stage: test    # It only starts when the job in the build stage completes successfully.
   script:
     - echo "Running unit tests..."
-    - go test ./candlelight-api/Accounts
+    - go test ./candlelight-api/...
+    - go test ./candlelight-ruleengine/...
+    - go test ./candlelight-models/...
 
 deploy-job:      # This job runs in the deploy stage.
   stage: deploy  # It only runs when *both* jobs in the test stage complete successfully.

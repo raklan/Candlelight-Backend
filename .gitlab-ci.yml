@@ -40,4 +40,7 @@ deploy-job:      # This job runs in the deploy stage.
   stage: deploy  # It only runs when *both* jobs in the test stage complete successfully.
   environment: production
   script:
-    - ssh ec2-3-19-232-179.us-east-2.compute.amazonaws.com -i ~/.ssh/candlelight-dev-login.pem -l ec2-user 'dir'
+    - docker login -u candlelightdevteam -p dckr_pat_Vag7IPMiBX8qg23Z98Mu45jiS3M
+    - docker build --no-cache -t candlelightdevteam/candlelight-backend:latest .
+    - docker push candlelightdevteam/candlelight-backend:latest
+    #- ssh ec2-3-19-232-179.us-east-2.compute.amazonaws.com -i ~/.ssh/candlelight-dev-login.pem -l ec2-user 'dir'

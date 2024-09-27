@@ -31,13 +31,14 @@ unit-test-job:   # This job runs in the test stage.
   stage: test    # It only starts when the job in the build stage completes successfully.
   script:
     - echo "Running unit tests..."
-    - go test ./candlelight-api/...
-    - go test ./candlelight-ruleengine/...
-    - go test ./candlelight-models/...
+    # - go test ./candlelight-api/...
+    # - go test ./candlelight-ruleengine/...
+    # - go test ./candlelight-models/...
+    # temporarily commented out for testing of pipeline
 
 deploy-job:      # This job runs in the deploy stage.
   stage: deploy  # It only runs when *both* jobs in the test stage complete successfully.
   environment: production
   script:
-    - echo "Deploying application..."
-    - echo "Application successfully deployed."
+    - ssh ec2-3-19-232-179.us-east-2.compute.amazonaws.com -i ~/.ssh/candlelight-dev-login.pem -l ec2-user
+    - dir

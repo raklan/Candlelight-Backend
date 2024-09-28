@@ -263,29 +263,25 @@ func awaitClientMessage(lobby map[string]*websocket.Conn, playerId string, conn 
 }
 
 // This gets called on loop per lobby
-func processMessage(lobbyCode string, playerId string, message []byte) {
+func processMessage(roomCode string, playerId string, message []byte) {
 
 	var msg struct {
 		JsonType string          `json:"jsonType"`
 		Data     json.RawMessage `json:"data"` //Raw message delays the parsing
 	}
 	json.Unmarshal(message, &msg)
+
+	lobby := gamesClients[roomCode]
+
 	switch msg.JsonType {
 	case "startGame":
-		game, err := Engine.GetInitialGameState(lobbyCode)
+		game, err := Engine.GetInitialGameState(roomCode)
 		if err != nil {
 			log.Fatal("GAME NOT STARTED, ABORTING", err, playerId)
 			return
 		}
 
-		lobby := gamesClients[lobbyCode]
-		for playerId, conn := range lobby {
-			err := conn.WriteJSON(game)
-			if err != nil {
-				log.Println("Error sending sending lobby, skipping meesage to ", playerId)
-				continue // I don't handle disconnection rn
-			}
-		}
+		sendMessageToAllPlayers(lobby, game)
 	case "submitAction":
 		var action struct {
 			GameId string                  `json:"gameId"`
@@ -295,22 +291,102 @@ func processMessage(lobbyCode string, playerId string, message []byte) {
 			log.Fatal("error decoding submitAction: {}", err, playerId)
 		}
 
-		lobby := gamesClients[lobbyCode]
 		changelog, err := Engine.SubmitAction(action.GameId, action.Action)
 		if err != nil {
 			log.Fatalf("error with submitAction: {%s}", err)
 		}
 
-		for playerId, conn := range lobby {
-			log.Println("Sending updated gameState to", playerId)
-			if err := conn.WriteJSON(changelog); err != nil {
-				log.Println("Error sending gameState, skipping meesage to ", playerId)
+		sendMessageToAllPlayers(lobby, changelog)
+	case "leaveLobby":
+		updatedLobby, err := endPlayerConnection(roomCode, playerId, lobby)
 
-				continue // Assuming you will handle disconnections later
+		if err != nil {
+			socketError := SocketError{
+				Message: err.Error(),
 			}
+			lobby[playerId].WriteJSON(socketError)
+			break
 		}
+
+		sendMessageToAllPlayers(lobby, LobbyMessage{PlayerID: "", LobbyInfo: updatedLobby})
+	case "kickPlayer":
+		var action struct {
+			PlayerToKick string `json:"playerToKick"`
+		}
+		if err := json.Unmarshal(msg.Data, &action); err != nil {
+			log.Printf("Error trying to unmarshal kick request into struct with field 'playerToKick' ... Please ensure field exists in Data")
+			socketError := SocketError{
+				Message: "Message is malformed. Please ensure field 'playerToKick' is found in message object's 'Data' field!",
+			}
+			lobby[playerId].WriteJSON(socketError)
+			break
+		}
+
+		dbLobby, err := Engine.LoadLobbyFromRedis(roomCode)
+
+		if err != nil {
+			log.Printf("Error trying to find lobby")
+			socketError := SocketError{
+				Message: "Could not find lobby. Something has gone terribly wrong",
+			}
+			lobby[playerId].WriteJSON(socketError)
+			break
+		}
+
+		if dbLobby.Host.Id != playerId {
+			socketError := SocketError{
+				Message: "Player submitting kick request is not the host of the lobby!",
+			}
+			lobby[playerId].WriteJSON(socketError)
+			break
+		}
+
+		updatedLobby, err := endPlayerConnection(roomCode, action.PlayerToKick, lobby)
+
+		if err != nil {
+			socketError := SocketError{
+				Message: err.Error(),
+			}
+			lobby[playerId].WriteJSON(socketError)
+			break
+		}
+
+		sendMessageToAllPlayers(lobby, LobbyMessage{PlayerID: "", LobbyInfo: updatedLobby})
 	default:
 		log.Println("Unknown type sent, ignoring message recieved", msg)
+	}
+}
+
+func endPlayerConnection(roomCode string, playerId string, lobby map[string]*websocket.Conn) (Session.Lobby, error) {
+	//Tell the engine to remove the player from the DB copy of the lobby
+	updatedLobby, err := Engine.LeaveRoom(roomCode, playerId)
+	if err != nil {
+		return Session.Lobby{}, err
+	}
+
+	//Tell the client that the connection is closing, then close connection
+	conn := lobby[playerId]
+	msg := struct {
+		Message string
+	}{
+		Message: "Player has been removed from Lobby. Closing connection",
+	}
+	conn.WriteJSON(msg)
+	conn.Close()
+
+	//Remove connection from lobby map so we don't try to send them any more messages
+	delete(lobby, playerId)
+
+	return updatedLobby, nil
+}
+
+func sendMessageToAllPlayers(lobby map[string]*websocket.Conn, message interface{}) {
+	for playerId, conn := range lobby {
+		err := conn.WriteJSON(message)
+		if err != nil {
+			log.Println("Error sending message, skipping meesage to ", playerId)
+			continue // I don't handle disconnection rn
+		}
 	}
 }
 

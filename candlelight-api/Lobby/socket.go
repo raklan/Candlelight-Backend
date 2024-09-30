@@ -72,7 +72,7 @@ func HostLobby(w http.ResponseWriter, r *http.Request) {
 	if _, exists := gamesClients[lobbyCode]; !exists {
 		gamesClients[lobbyCode] = make(map[string]*websocket.Conn)
 	}
-	gamesClients[lobbyCode][playerName] = conn
+	gamesClients[lobbyCode][playerID] = conn
 	gamesClientsMutex.Unlock()
 
 	go manageLobby(lobbyCode)
@@ -237,8 +237,11 @@ func manageLobby(lobbyCode string) {
 			log.Printf("Received message: %s", data.Message)
 			processMessage(lobbyCode, data.PlayerId, data.Message)
 			//Since the only way we got here is by one of the clients sending something (and therefore completing awaitClientMessage for that client)
-			//we need to spin off another goroutine to wait for this client's next message
-			go awaitClientMessage(lobby, data.PlayerId, lobby[data.PlayerId], messages)
+			//we need to spin off another goroutine to wait for this client's next message. However, if the connection was closed as a result of the last message,
+			//we don't want to start listening again
+			if lobby[data.PlayerId] != nil {
+				go awaitClientMessage(lobby, data.PlayerId, lobby[data.PlayerId], messages)
+			}
 		default:
 			continue
 		}

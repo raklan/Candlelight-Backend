@@ -554,7 +554,7 @@ func JoinRoom(roomCode string, playerName string) (Session.Lobby, string, error)
 }
 
 func LeaveRoom(roomCode string, playerId string) (Session.Lobby, error) {
-	funcLogPrefix := "==JoinRoom=="
+	funcLogPrefix := "==LeaveRoom=="
 	defer LogUtil.EnsureLogPrefixIsReset()
 	LogUtil.SetLogPrefix(ModuleLogPrefix, PackageLogPrefix)
 
@@ -590,7 +590,7 @@ func LeaveRoom(roomCode string, playerId string) (Session.Lobby, error) {
 		return Session.Lobby{}, err
 	}
 
-	log.Printf("%s Lobby. Returning Lobby", funcLogPrefix)
+	log.Printf("%s Left Lobby. Returning Lobby", funcLogPrefix)
 	return saved, nil
 }
 

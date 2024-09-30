@@ -3,6 +3,7 @@ package Lobby
 import (
 	"candlelight-api/CreationStudio"
 	"candlelight-models/Player"
+	"candlelight-models/Session"
 	"candlelight-ruleengine/Engine"
 	"encoding/json"
 	"net/http"
@@ -387,6 +388,58 @@ func TestRejoinLobby(t *testing.T) { //TODO: Tests don't take their player out o
 				}
 			}
 		})
+	}
+}
+
+func TestLeaveGame(t *testing.T) {
+	ensureDummyGameExists()
+	roomCode, err := Engine.CreateRoom("game123")
+	if err != nil {
+		t.Fatal("Couldn't Create Lobby for dummy game! Ensure function createJSON has been called or a GET request has been sent to /dummy")
+	}
+
+	defer testRecovery(t, "lobby:"+roomCode)
+	defer Engine.RDB.Del(Engine.RDB.Context(), "lobby:"+roomCode)
+
+	//Hack our newly created lobby into the gamesClients tracker
+	gamesClients[roomCode] = make(map[string]*websocket.Conn)
+
+	// Create a test server using the hostLobby handler.
+	// Dummy game must be created prior to running
+	server := httptest.NewServer(http.HandlerFunc(HostLobby))
+	defer server.Close()
+
+	// Modify the URL for WebSocket usage
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "?gameId=game123&playerName=testPlayer"
+
+	// Connect to the WebSocket server
+	ws, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+
+	if err != nil {
+		t.Fatalf("Error trying to connect: %s", err)
+	}
+
+	lm := LobbyMessage{}
+
+	_ = ws.ReadJSON(&lm)
+
+	msg := struct {
+		JsonType string
+		Data     json.RawMessage
+	}{
+		JsonType: "leaveLobby",
+	}
+
+	ws.WriteJSON(msg)
+	ws.Close()
+
+	asJson, _ := Engine.RDB.Get(Engine.RDB.Context(), "lobby:"+roomCode).Result()
+	lobby := Session.Lobby{}
+
+	json.Unmarshal([]byte(asJson), &lobby)
+
+	if len(lobby.Players) != 0 {
+		t.Errorf("Number of players remaining in lobby is incorrect. Got %d", len(lobby.Players))
 	}
 }
 

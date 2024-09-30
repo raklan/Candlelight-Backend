@@ -443,6 +443,79 @@ func TestLeaveGame(t *testing.T) {
 	}
 }
 
+func TestKickFromGame(t *testing.T) {
+	t.SkipNow() //TODO: This can't be accurately tested because for some godforsaken reason, updating the server's handler creates a new instance of the server, losing all data in memory. this means I can't have one connection host, and another one join
+	ensureDummyGameExists()
+
+	// Create a test server using the hostLobby handler.
+	// Dummy game must be created prior to running
+	server := httptest.NewServer(http.HandlerFunc(HostLobby))
+	defer server.Close()
+
+	// Modify the URL for WebSocket usage
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "?gameId=game123&playerName=testPlayer"
+
+	// Connect to the WebSocket server
+	ws, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+
+	if err != nil {
+		t.Fatalf("Error trying to connect: %s", err)
+	}
+
+	lm := LobbyMessage{}
+
+	_ = ws.ReadJSON(&lm)
+
+	roomCode := lm.LobbyInfo.RoomCode
+
+	defer testRecovery(t, "lobby:"+roomCode)
+	defer Engine.RDB.Del(Engine.RDB.Context(), "lobby:"+roomCode)
+
+	//Hack our newly created lobby into the gamesClients tracker
+	gamesClients[roomCode] = make(map[string]*websocket.Conn)
+
+	secondPlayerId := ""
+
+	wsURL = "ws" + strings.TrimPrefix(server.URL, "http") + "?playerName=playerToKick&roomCode=" + roomCode
+
+	// Connect to the WebSocket server
+	secondWs, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+
+	if err != nil {
+		t.Errorf("Error trying to connect second websocket: %s", err)
+	}
+
+	secondLm := LobbyMessage{}
+	err = secondWs.ReadJSON(&secondLm)
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	secondPlayerId = secondLm.PlayerID
+
+	msg := struct {
+		JsonType string
+		Data     struct {
+			PlayerToKick string `json:"playerToKick"`
+		}
+	}{
+		JsonType: "kickPlayer",
+		Data: struct {
+			PlayerToKick string `json:"playerToKick"`
+		}{PlayerToKick: secondPlayerId},
+	}
+
+	err = ws.WriteJSON(msg)
+	ws.ReadJSON(&lm)
+
+	if err == nil {
+		if len(lm.LobbyInfo.Players) != 1 {
+			t.Errorf("Number of players remaining in lobby is incorrect. Got %d", len(lm.LobbyInfo.Players))
+		}
+	}
+}
+
 func testRecovery(t *testing.T, dbCleanupKey string) {
 	t.Helper()
 

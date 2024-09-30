@@ -384,6 +384,7 @@ func endPlayerConnection(roomCode string, playerId string, lobby map[string]*web
 }
 
 func sendMessageToAllPlayers(lobby map[string]*websocket.Conn, message interface{}) {
+	log.Printf("Sending message to every player: %s", message)
 	for playerId, conn := range lobby {
 		err := conn.WriteJSON(message)
 		if err != nil {

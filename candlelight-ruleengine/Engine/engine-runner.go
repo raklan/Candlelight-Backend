@@ -540,7 +540,7 @@ func JoinRoom(roomCode string, playerName string) (Session.Lobby, string, error)
 	}
 
 	updatedLobby.Players = append(lobby.Players, thisPlayer)
-	updatedLobby.NumPlayers++
+	updatedLobby.NumPlayers = len(updatedLobby.Players)
 
 	log.Printf("%s Player added. Caching new Lobby", funcLogPrefix)
 	saved, err := SaveLobbyInRedis(updatedLobby)
@@ -551,6 +551,47 @@ func JoinRoom(roomCode string, playerName string) (Session.Lobby, string, error)
 
 	log.Printf("%s Lobby joined and saved. Returning Lobby", funcLogPrefix)
 	return saved, thisPlayer.Id, nil
+}
+
+func LeaveRoom(roomCode string, playerId string) (Session.Lobby, error) {
+	funcLogPrefix := "==LeaveRoom=="
+	defer LogUtil.EnsureLogPrefixIsReset()
+	LogUtil.SetLogPrefix(ModuleLogPrefix, PackageLogPrefix)
+
+	log.Printf("%s Recieved request to remove Player {%s} from lobby with RoomCode == {%s}", funcLogPrefix, playerId, roomCode)
+
+	lobby, err := LoadLobbyFromRedis(roomCode)
+	if err != nil {
+		LogError(funcLogPrefix, err)
+		return Session.Lobby{}, err
+	}
+
+	//Create a copy, in case anything goes wrong
+	updatedLobby := lobby
+	updatedLobby.Players = slices.Clone(lobby.Players)
+
+	log.Printf("%s Removing player {%s} from lobby's Player List", funcLogPrefix, playerId)
+
+	newPlayers := []Player.Player{}
+
+	for _, player := range updatedLobby.Players {
+		if player.Id != playerId {
+			newPlayers = append(newPlayers, player)
+		}
+	}
+
+	updatedLobby.Players = newPlayers
+	updatedLobby.NumPlayers = len(newPlayers)
+
+	log.Printf("%s Player Removed. Caching new Lobby", funcLogPrefix)
+	saved, err := SaveLobbyInRedis(updatedLobby)
+	if err != nil { //If something goes wrong, re-save and return the version without any changes
+		SaveLobbyInRedis(lobby)
+		return Session.Lobby{}, err
+	}
+
+	log.Printf("%s Left Lobby. Returning Lobby", funcLogPrefix)
+	return saved, nil
 }
 
 func createPlayerObject(name string) Player.Player {

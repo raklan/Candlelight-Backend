@@ -471,9 +471,6 @@ func TestKickFromGame(t *testing.T) {
 	defer testRecovery(t, "lobby:"+roomCode)
 	defer Engine.RDB.Del(Engine.RDB.Context(), "lobby:"+roomCode)
 
-	//Hack our newly created lobby into the gamesClients tracker
-	gamesClients[roomCode] = make(map[string]*websocket.Conn)
-
 	secondPlayerId := ""
 
 	wsURL = "ws" + strings.TrimPrefix(server.URL, "http") + "?playerName=playerToKick&roomCode=" + roomCode

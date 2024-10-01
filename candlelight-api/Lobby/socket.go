@@ -63,9 +63,12 @@ func HostLobby(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "WebSocket upgrade failed", http.StatusInternalServerError)
 		return
 	}
-	msg := LobbyMessage{
-		PlayerID:  playerID,
-		LobbyInfo: lobbyInfo,
+	msg := WebsocketMessage{
+		Type: WebsocketMessage_LobbyInfo,
+		Data: LobbyMessage{
+			PlayerID:  playerID,
+			LobbyInfo: lobbyInfo,
+		},
 	}
 	conn.WriteJSON(msg)
 	gamesClientsMutex.Lock()
@@ -109,9 +112,12 @@ func HandleJoinLobby(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	msg := LobbyMessage{
-		PlayerID:  playerID,
-		LobbyInfo: lobbyInfo,
+	msg := WebsocketMessage{
+		Type: WebsocketMessage_LobbyInfo,
+		Data: LobbyMessage{
+			PlayerID:  playerID,
+			LobbyInfo: lobbyInfo,
+		},
 	}
 	conn.WriteJSON(msg)
 	gamesClients[lobbyCode][playerID] = conn
@@ -166,13 +172,19 @@ func HandleRejoinLobby(w http.ResponseWriter, r *http.Request) {
 	if lobbyInfo.GameStateId != "" {
 		gameState, err := Engine.GetCachedGameStateFromRedis(lobbyInfo.GameStateId)
 		if err != nil {
-			conn.WriteJSON(SocketError{Message: err.Error()})
+			conn.WriteJSON(WebsocketMessage{
+				Type: WebsocketMessage_Error,
+				Data: SocketError{Message: err.Error()},
+			})
 		}
-		conn.WriteJSON(gameState)
+		conn.WriteJSON(WebsocketMessage{Type: WebsocketMessage_GameState, Data: gameState})
 	} else {
-		msg := LobbyMessage{
-			PlayerID:  playerId,
-			LobbyInfo: lobbyInfo,
+		msg := WebsocketMessage{
+			Type: WebsocketMessage_LobbyInfo,
+			Data: LobbyMessage{
+				PlayerID:  playerId,
+				LobbyInfo: lobbyInfo,
+			},
 		}
 		conn.WriteJSON(msg)
 	}
@@ -187,9 +199,12 @@ func handShake(lobbyCode string, newPlayerId string) {
 	gamesClientsMutex.Unlock()
 	jsonLobby, err := Engine.LoadLobbyFromRedis(lobbyCode)
 
-	msg := LobbyMessage{
-		PlayerID:  newPlayerId,
-		LobbyInfo: jsonLobby,
+	msg := WebsocketMessage{
+		Type: WebsocketMessage_LobbyInfo,
+		Data: LobbyMessage{
+			PlayerID:  newPlayerId,
+			LobbyInfo: jsonLobby,
+		},
 	}
 	for playerId, conn := range lobby {
 		if err != nil {
@@ -284,7 +299,7 @@ func processMessage(roomCode string, playerId string, message []byte) {
 			return
 		}
 
-		sendMessageToAllPlayers(lobby, game)
+		sendMessageToAllPlayers(lobby, WebsocketMessage{Type: WebsocketMessage_GameState, Data: game})
 	case "submitAction":
 		var action struct {
 			GameId string                  `json:"gameId"`
@@ -299,27 +314,33 @@ func processMessage(roomCode string, playerId string, message []byte) {
 			log.Fatalf("error with submitAction: {%s}", err)
 		}
 
-		sendMessageToAllPlayers(lobby, changelog)
+		sendMessageToAllPlayers(lobby, WebsocketMessage{Type: WebsocketMessage_Changelog, Data: changelog})
 	case "leaveLobby":
 		updatedLobby, err := endPlayerConnection(roomCode, playerId, lobby)
 
 		if err != nil {
-			socketError := SocketError{
-				Message: err.Error(),
+			socketError := WebsocketMessage{
+				Type: WebsocketMessage_Error,
+				Data: SocketError{
+					Message: err.Error(),
+				},
 			}
 			lobby[playerId].WriteJSON(socketError)
 			break
 		}
 
-		sendMessageToAllPlayers(lobby, LobbyMessage{PlayerID: "", LobbyInfo: updatedLobby})
+		sendMessageToAllPlayers(lobby, WebsocketMessage{Type: WebsocketMessage_LobbyInfo, Data: LobbyMessage{PlayerID: "", LobbyInfo: updatedLobby}})
 	case "kickPlayer":
 		var action struct {
 			PlayerToKick string `json:"playerToKick"`
 		}
 		if err := json.Unmarshal(msg.Data, &action); err != nil {
 			log.Printf("Error trying to unmarshal kick request into struct with field 'playerToKick' ... Please ensure field exists in Data")
-			socketError := SocketError{
-				Message: "Message is malformed. Please ensure field 'playerToKick' is found in message object's 'Data' field!",
+			socketError := WebsocketMessage{
+				Type: WebsocketMessage_Error,
+				Data: SocketError{
+					Message: "Message is malformed. Please ensure field 'playerToKick' is found in message object's 'Data' field!",
+				},
 			}
 			lobby[playerId].WriteJSON(socketError)
 			break
@@ -329,16 +350,22 @@ func processMessage(roomCode string, playerId string, message []byte) {
 
 		if err != nil {
 			log.Printf("Error trying to find lobby")
-			socketError := SocketError{
-				Message: "Could not find lobby. Something has gone terribly wrong",
+			socketError := WebsocketMessage{
+				Type: WebsocketMessage_Error,
+				Data: SocketError{
+					Message: "Could not find lobby. Something has gone terribly wrong",
+				},
 			}
 			lobby[playerId].WriteJSON(socketError)
 			break
 		}
 
 		if dbLobby.Host.Id != playerId {
-			socketError := SocketError{
-				Message: "Player submitting kick request is not the host of the lobby!",
+			socketError := WebsocketMessage{
+				Type: WebsocketMessage_Error,
+				Data: SocketError{
+					Message: "Player submitting kick request is not the host of the lobby!",
+				},
 			}
 			lobby[playerId].WriteJSON(socketError)
 			break
@@ -347,14 +374,17 @@ func processMessage(roomCode string, playerId string, message []byte) {
 		updatedLobby, err := endPlayerConnection(roomCode, action.PlayerToKick, lobby)
 
 		if err != nil {
-			socketError := SocketError{
-				Message: err.Error(),
+			socketError := WebsocketMessage{
+				Type: WebsocketMessage_Error,
+				Data: SocketError{
+					Message: err.Error(),
+				},
 			}
 			lobby[playerId].WriteJSON(socketError)
 			break
 		}
 
-		sendMessageToAllPlayers(lobby, LobbyMessage{PlayerID: "", LobbyInfo: updatedLobby})
+		sendMessageToAllPlayers(lobby, WebsocketMessage{Type: WebsocketMessage_LobbyInfo, Data: LobbyMessage{PlayerID: "", LobbyInfo: updatedLobby}})
 	default:
 		log.Println("Unknown type sent, ignoring message recieved", msg)
 	}
@@ -369,10 +399,13 @@ func endPlayerConnection(roomCode string, playerId string, lobby map[string]*web
 
 	//Tell the client that the connection is closing, then close connection
 	conn := lobby[playerId]
-	msg := struct {
-		Message string
-	}{
-		Message: "Player has been removed from Lobby. Closing connection",
+	msg := WebsocketMessage{
+		Type: WebsocketMessage_Close,
+		Data: struct {
+			Message string `json:"message"`
+		}{
+			Message: "Player has been removed from Lobby. Closing connection",
+		},
 	}
 	conn.WriteJSON(msg)
 	conn.Close()
@@ -383,8 +416,13 @@ func endPlayerConnection(roomCode string, playerId string, lobby map[string]*web
 	return updatedLobby, nil
 }
 
-func sendMessageToAllPlayers(lobby map[string]*websocket.Conn, message interface{}) {
+func sendMessageToAllPlayers(lobby map[string]*websocket.Conn, message WebsocketMessage) {
 	log.Printf("Sending message to every player: %s", message)
+
+	if message.Type == "" {
+		log.Println("WARNING: Websocket message being sent has no Type set! Frontend will likely not know how to handle the message!")
+	}
+
 	for playerId, conn := range lobby {
 		err := conn.WriteJSON(message)
 		if err != nil {

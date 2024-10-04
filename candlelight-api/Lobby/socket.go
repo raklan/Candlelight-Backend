@@ -65,7 +65,7 @@ func HostLobby(w http.ResponseWriter, r *http.Request) {
 	}
 	msg := WebsocketMessage{
 		Type: WebsocketMessage_LobbyInfo,
-		Data: LobbyMessage{
+		Data: LobbyInfo{
 			PlayerID:  playerID,
 			LobbyInfo: lobbyInfo,
 		},
@@ -114,7 +114,7 @@ func HandleJoinLobby(w http.ResponseWriter, r *http.Request) {
 
 	msg := WebsocketMessage{
 		Type: WebsocketMessage_LobbyInfo,
-		Data: LobbyMessage{
+		Data: LobbyInfo{
 			PlayerID:  playerID,
 			LobbyInfo: lobbyInfo,
 		},
@@ -181,7 +181,7 @@ func HandleRejoinLobby(w http.ResponseWriter, r *http.Request) {
 	} else {
 		msg := WebsocketMessage{
 			Type: WebsocketMessage_LobbyInfo,
-			Data: LobbyMessage{
+			Data: LobbyInfo{
 				PlayerID:  playerId,
 				LobbyInfo: lobbyInfo,
 			},
@@ -201,7 +201,7 @@ func handShake(lobbyCode string, newPlayerId string) {
 
 	msg := WebsocketMessage{
 		Type: WebsocketMessage_LobbyInfo,
-		Data: LobbyMessage{
+		Data: LobbyInfo{
 			PlayerID:  newPlayerId,
 			LobbyInfo: jsonLobby,
 		},
@@ -329,7 +329,7 @@ func processMessage(roomCode string, playerId string, message []byte) {
 			break
 		}
 
-		sendMessageToAllPlayers(lobby, WebsocketMessage{Type: WebsocketMessage_LobbyInfo, Data: LobbyMessage{PlayerID: "", LobbyInfo: updatedLobby}})
+		sendMessageToAllPlayers(lobby, WebsocketMessage{Type: WebsocketMessage_LobbyInfo, Data: LobbyInfo{PlayerID: "", LobbyInfo: updatedLobby}})
 	case "kickPlayer":
 		var action struct {
 			PlayerToKick string `json:"playerToKick"`
@@ -384,7 +384,7 @@ func processMessage(roomCode string, playerId string, message []byte) {
 			break
 		}
 
-		sendMessageToAllPlayers(lobby, WebsocketMessage{Type: WebsocketMessage_LobbyInfo, Data: LobbyMessage{PlayerID: "", LobbyInfo: updatedLobby}})
+		sendMessageToAllPlayers(lobby, WebsocketMessage{Type: WebsocketMessage_LobbyInfo, Data: LobbyInfo{PlayerID: "", LobbyInfo: updatedLobby}})
 	default:
 		log.Println("Unknown type sent, ignoring message recieved", msg)
 	}
@@ -401,9 +401,7 @@ func endPlayerConnection(roomCode string, playerId string, lobby map[string]*web
 	conn := lobby[playerId]
 	msg := WebsocketMessage{
 		Type: WebsocketMessage_Close,
-		Data: struct {
-			Message string `json:"message"`
-		}{
+		Data: SocketClose{
 			Message: "Player has been removed from Lobby. Closing connection",
 		},
 	}

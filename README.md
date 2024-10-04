@@ -11,4 +11,4 @@ The "staging" branch that work branches come from. The latest (and possibly unst
 ### Work Item Branches
 Individual branches are created for each Issue on the board to isolate features for testing purposes. If you want to look at a specific piece of functionality, go to the branch for that Issue
 
-To run the code, you can simply run `docker compose build` then `docker compose up` from the root directory
+To run the code, you can simply run `docker compose build` then `docker compose up` from the root directory, or if you want to run it manually, ensure that redis is running on your machine, then run `go run ./candlelight-api` from the root directory

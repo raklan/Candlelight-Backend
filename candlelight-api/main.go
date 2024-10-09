@@ -8,10 +8,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"time"
 
 	"github.com/rs/cors"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 func main() {
@@ -21,16 +20,16 @@ func main() {
 func startServer() {
 	//Go does the strangest datetime string formatting I've ever seen. You give it a specific date/time (Specifically Jan 2, 2006 3:04:05 PM GMT-7)
 	//in the format you want, and it'll match whatever the object is into that format
-	logName := fmt.Sprintf("./logs/%v.log", time.Now().Format("2006-01-02_15-04-05"))
+	logName := "./logs/serverlog.log"
 
 	//Log file & Server startup
 	log.SetPrefix("CANDLELIGHT-API: ")
-	logfile, err := os.OpenFile(logName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatalf("Error opening log file: %v", err)
-	}
-	defer logfile.Close()
-	log.SetOutput(logfile)
+
+	log.SetOutput(&lumberjack.Logger{
+		Filename: logName,
+		MaxSize:  1,
+		MaxAge:   7,
+	})
 
 	log.Println("Starting HTTP listener...")
 

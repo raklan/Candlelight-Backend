@@ -4,6 +4,7 @@ import (
 	"candlelight-api/Accounts"
 	"candlelight-api/CreationStudio"
 	"candlelight-api/Lobby"
+	"os"
 
 	"fmt"
 	"log"
@@ -19,13 +20,19 @@ func main() {
 
 func startServer() {
 	//Log file & Server startup
-	logName := "./logs/serverlog.log"
+	logName := "./logs/server.log"
 	log.SetPrefix("CANDLELIGHT-API: ")
+
+	compressLogs := false
+	if os.Getenv("CANDLELIGHT_COMPRESS_LOGS") == "true" {
+		compressLogs = true
+	}
 
 	log.SetOutput(&lumberjack.Logger{
 		Filename: logName,
 		MaxSize:  1,
 		MaxAge:   7,
+		Compress: compressLogs,
 	})
 
 	log.Println("Starting HTTP listener...")

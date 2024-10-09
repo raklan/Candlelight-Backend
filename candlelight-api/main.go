@@ -18,11 +18,8 @@ func main() {
 }
 
 func startServer() {
-	//Go does the strangest datetime string formatting I've ever seen. You give it a specific date/time (Specifically Jan 2, 2006 3:04:05 PM GMT-7)
-	//in the format you want, and it'll match whatever the object is into that format
-	logName := "./logs/serverlog.log"
-
 	//Log file & Server startup
+	logName := "./logs/serverlog.log"
 	log.SetPrefix("CANDLELIGHT-API: ")
 
 	log.SetOutput(&lumberjack.Logger{

@@ -92,7 +92,7 @@ func HandleJoinLobby(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lobbyInfo, playerID, err := Engine.JoinRoom(lobbyCode, playerName)
+	_, playerID, err := Engine.JoinRoom(lobbyCode, playerName)
 	if err != nil {
 		log.Printf("Error joining room: %v\n", err)
 		http.Error(w, "Unable to join room", http.StatusNotFound)
@@ -112,14 +112,14 @@ func HandleJoinLobby(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	msg := WebsocketMessage{
-		Type: WebsocketMessage_LobbyInfo,
-		Data: LobbyInfo{
-			PlayerID:  playerID,
-			LobbyInfo: lobbyInfo,
-		},
-	}
-	conn.WriteJSON(msg)
+	// msg := WebsocketMessage{
+	// 	Type: WebsocketMessage_LobbyInfo,
+	// 	Data: LobbyInfo{
+	// 		PlayerID:  playerID,
+	// 		LobbyInfo: lobbyInfo,
+	// 	},
+	// }
+	//conn.WriteJSON(msg)
 	gamesClients[lobbyCode][playerID] = conn
 	gamesClientsMutex.Unlock()
 	go handShake(lobbyCode, playerID)

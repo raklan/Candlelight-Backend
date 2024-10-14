@@ -1,5 +1,7 @@
 services:  
   web:
+    volumes:
+      - ./logs/:/logs/:delegated
     build: .
     ports:
       - "10000:10000"

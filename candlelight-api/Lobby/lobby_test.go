@@ -256,7 +256,7 @@ func TestJoinLobby(t *testing.T) {
 					return //Succeed
 				}
 			}
-			ws.ReadMessage()
+			ws.Close()
 		})
 	}
 }

@@ -269,6 +269,7 @@ func GetInitialGameState(roomCode string) (Session.GameState, error) {
 	}
 
 	gameState.GameDefinitionId = gameDef.Id
+	gameState.GameName = gameDef.Name
 	gameState.CurrentPhase = gameDef.BeginningPhase
 	gameState.Views = gameDef.ViewsForPlayer(0) //Player 0 == public/table-owned
 

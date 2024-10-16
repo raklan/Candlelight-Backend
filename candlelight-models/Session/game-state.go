@@ -27,6 +27,8 @@ type GameState struct {
 	Id string `json:"id"`
 	//The ID of the GameDefinition that this game state tracks
 	GameDefinitionId string `json:"gameDefinitionId"`
+	//The name of the GameDefinition that this game tracks. Added for rejoining players to be able to see the game's name
+	GameName string `json:"gameName"`
 	//A list of the states of each Player in the game.
 	PlayerStates []PlayerState `json:"playerStates"`
 	//The player whose turn it currently is

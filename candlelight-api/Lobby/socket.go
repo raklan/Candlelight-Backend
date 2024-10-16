@@ -126,6 +126,8 @@ func HandleJoinLobby(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleRejoinLobby(w http.ResponseWriter, r *http.Request) {
+	log.Println("Received request to rejoin a lobby!")
+
 	lobbyCode := r.URL.Query().Get("roomCode")
 	playerId := r.URL.Query().Get("playerId")
 
@@ -141,35 +143,35 @@ func HandleRejoinLobby(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//Make sure this player has joined the game before
+	log.Printf("Making sure player {%s} has joined this game before", playerId)
 	if !slices.ContainsFunc(lobbyInfo.Players, func(p Player.Player) bool { return p.Id == playerId }) {
 		http.Error(w, "No player with given ID found in lobby", http.StatusNotFound)
 		return
 	}
 
 	//Make sure that player does not already have an open connection
+	log.Printf("Making sure player {%s} does not already have an open connection", playerId)
 	gamesClientsMutex.Lock()
 	if _, exists := gamesClients[lobbyCode][playerId]; exists {
 		http.Error(w, "Found already open connection for player", http.StatusBadRequest)
+		gamesClientsMutex.Unlock()
 		return
 	}
+	gamesClientsMutex.Unlock()
 
 	//Now we should know the player is allowed to rejoin. Upgrade to websocket
+	log.Printf("Player {%s} is allowed to rejoin. Upgrading connection to websocket.", playerId)
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		http.Error(w, "WebSocket upgrade failed", http.StatusInternalServerError)
 		return
 	}
 
-	gamesClients[lobbyCode][playerId] = conn
-	lobby := gamesClients[lobbyCode]
-	gamesClientsMutex.Unlock()
-
-	messageBufferMutex.Lock()
-	buffer := messageBuffers[lobbyCode]
-	messageBufferMutex.Unlock()
+	log.Println("Upgrade finished. Checking status of lobby to give accurate first message...")
 
 	//Check if game is started. If so, send the GameState instead of the lobby
-	if lobbyInfo.GameStateId != "" {
+	if lobbyInfo.Status == Session.LobbyStatus_InProgress {
+		log.Println("Game has started. Sending GameState")
 		gameState, err := Engine.GetCachedGameStateFromRedis(lobbyInfo.GameStateId)
 		if err != nil {
 			conn.WriteJSON(WebsocketMessage{
@@ -178,7 +180,8 @@ func HandleRejoinLobby(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 		conn.WriteJSON(WebsocketMessage{Type: WebsocketMessage_GameState, Data: gameState})
-	} else {
+	} else if lobbyInfo.Status == Session.LobbyStatus_AwaitingStart {
+		log.Println("Game has not started yet. Sending LobbyInfo")
 		msg := WebsocketMessage{
 			Type: WebsocketMessage_LobbyInfo,
 			Data: LobbyInfo{
@@ -187,7 +190,30 @@ func HandleRejoinLobby(w http.ResponseWriter, r *http.Request) {
 			},
 		}
 		conn.WriteJSON(msg)
+	} else { //I don't love how I handle this case, upgrading the socket only to immediately close it feels bad
+		log.Println("Game has already ended! Player cannot join!")
+		msg := WebsocketMessage{
+			Type: WebsocketMessage_Error,
+			Data: SocketError{
+				Message: "Game has already ended. Cannot rejoin",
+			},
+		}
+		conn.WriteJSON(msg)
+		conn.Close()
+		return
 	}
+
+	log.Printf("Player {%s} has been given first message. Beginning to track connection for further communication...", playerId)
+
+	gamesClientsMutex.Lock()
+	gamesClients[lobbyCode][playerId] = conn
+	lobby := gamesClients[lobbyCode]
+	gamesClientsMutex.Unlock()
+
+	messageBufferMutex.Lock()
+	buffer := messageBuffers[lobbyCode]
+	messageBufferMutex.Unlock()
+
 	go awaitClientMessage(lobby, playerId, conn, buffer)
 }
 
@@ -295,11 +321,18 @@ func processMessage(roomCode string, playerId string, message []byte) {
 	case "startGame":
 		game, err := Engine.GetInitialGameState(roomCode)
 		if err != nil {
-			log.Fatal("GAME NOT STARTED, ABORTING", err, playerId)
+			log.Printf("ERROR: GAME NOT STARTED, ABORTING...%s", err)
 			return
 		}
 
 		sendMessageToAllPlayers(lobby, WebsocketMessage{Type: WebsocketMessage_GameState, Data: game})
+	case "endGame":
+		err := Engine.EndGame(roomCode, playerId)
+		if err != nil {
+			log.Printf("ERROR: Trying to end game...%s", err)
+			return
+		}
+		closeAllConnections(lobby)
 	case "submitAction":
 		var action struct {
 			GameId string                  `json:"gameId"`
@@ -412,6 +445,23 @@ func endPlayerConnection(roomCode string, playerId string, lobby map[string]*web
 	delete(lobby, playerId)
 
 	return updatedLobby, nil
+}
+
+func closeAllConnections(lobby map[string]*websocket.Conn) {
+	message := WebsocketMessage{
+		Type: WebsocketMessage_Close,
+		Data: SocketClose{
+			Message: "Game has ended. Closing connection",
+		},
+	}
+	for playerId, conn := range lobby {
+		err := conn.WriteJSON(message)
+		if err != nil {
+			log.Printf("Error sending message to %s. Aborting message, but closing connection anyways", playerId)
+		}
+		conn.Close()
+		delete(lobby, playerId)
+	}
 }
 
 func sendMessageToAllPlayers(lobby map[string]*websocket.Conn, message WebsocketMessage) {

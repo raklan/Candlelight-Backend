@@ -529,6 +529,56 @@ func TestKickFromGame(t *testing.T) {
 	}
 }
 
+func TestEndGame(t *testing.T) {
+	ensureDummyGameExists()
+
+	// Create a test server using the hostLobby handler.
+	// Dummy game must be created prior to running
+	server := httptest.NewServer(http.HandlerFunc(HostLobby))
+	defer server.Close()
+
+	// Modify the URL for WebSocket usage
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "?gameId=game123&playerName=testPlayer"
+
+	// Connect to the WebSocket server
+	ws, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+
+	if err != nil {
+		t.Fatalf("Error trying to connect: %s", err)
+	}
+
+	lm := LobbyInfo{}
+
+	_ = ws.ReadJSON(&lm)
+
+	msg := struct {
+		JsonType string
+	}{
+		JsonType: "endGame",
+	}
+
+	err = ws.WriteJSON(msg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	received := WebsocketMessage{}
+
+	ws.ReadJSON(&received)
+
+	if received.Type != WebsocketMessage_Close {
+		t.Fatalf("Websocket type mismatch. Expected a close message, but got: %s", received.Type)
+	}
+
+	closeMessage := SocketClose{}
+	asJson, _ := json.Marshal(received.Data)
+	json.Unmarshal(asJson, &closeMessage)
+
+	if closeMessage.Message == "" {
+		t.Fatalf("Didn't get a close message!")
+	}
+}
+
 func testRecovery(t *testing.T, dbCleanupKey string) {
 	t.Helper()
 

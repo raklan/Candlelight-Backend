@@ -256,8 +256,8 @@ func GetInitialGameState(roomCode string) (Session.GameState, error) {
 	}
 
 	//Check if the lobby is already started.
-	if lobby.GameStateId != "" {
-		err := fmt.Errorf("tried to start game, but Lobby {%s} already has a GameStateId == {%s}", lobby.RoomCode, lobby.GameStateId)
+	if lobby.Status == Session.LobbyStatus_InProgress {
+		err := fmt.Errorf("tried to start game, but Lobby {%s} has been marked as In Progress and has a GameStateId == {%s}", lobby.RoomCode, lobby.GameStateId)
 		LogError(funcLogPrefix, err)
 		return gameState, err
 	}
@@ -307,8 +307,9 @@ func GetInitialGameState(roomCode string) (Session.GameState, error) {
 		return gameState, err
 	}
 
-	//"Mark" the lobby as started by filling in GameStateId
+	//Mark the lobby as started and fill in GameStateId
 	lobby.GameStateId = gameState.Id
+	lobby.Status = Session.LobbyStatus_InProgress
 	_, err = SaveLobbyInRedis(lobby)
 	if err != nil {
 		LogError(funcLogPrefix, err)
@@ -316,6 +317,38 @@ func GetInitialGameState(roomCode string) (Session.GameState, error) {
 	}
 
 	return gameState, nil
+}
+
+func EndGame(roomCode string, playerId string) error {
+	funcLogPrefix := "==GetInitialGameState=="
+	defer LogUtil.EnsureLogPrefixIsReset()
+	LogUtil.SetLogPrefix(ModuleLogPrefix, PackageLogPrefix)
+
+	lobby, err := LoadLobbyFromRedis(roomCode)
+	if err != nil {
+		LogError(funcLogPrefix, err)
+		return err
+	}
+
+	//Make sure that A) this player is the host and therefore allowed to end the game, and B) this game isn't already ended
+
+	if lobby.Host.Id != playerId {
+		return fmt.Errorf("player trying to end game is not host of lobby")
+	}
+
+	if lobby.Status == Session.LobbyStatus_Ended {
+		return fmt.Errorf("game has already been marked as ended")
+	}
+
+	//Might want to delete the GameState?
+
+	//Mark Game as ended and resave
+	lobby.Status = Session.LobbyStatus_Ended
+
+	_, err = SaveLobbyInRedis(lobby)
+
+	//Return any error that occurred during saving, if any
+	return err
 }
 
 func DeterminePlayerAllowedActions(gameState *Session.GameState, gameDef *Game.Game) Actions.ActionSet {
@@ -482,6 +515,7 @@ func CreateRoom(gameDefId string) (string, error) {
 	log.Printf("%s Creating lobby object", funcLogPrefix)
 	lobby := Session.Lobby{
 		GameDefinitionId: requestedGame.Id,
+		Status:           Session.LobbyStatus_AwaitingStart,
 		GameName:         requestedGame.Name,
 		MaxPlayers:       requestedGame.MaxPlayers,
 		NumPlayers:       0,
@@ -521,10 +555,14 @@ func JoinRoom(roomCode string, playerName string) (Session.Lobby, string, error)
 		return Session.Lobby{}, "", err
 	}
 
-	//Only allow player to join if there's room
+	//Only allow player to join if there's room & the game hasn't started yet (i.e. Status == LobbyStatus_AwaitingStart)
 	if lobby.NumPlayers >= lobby.MaxPlayers {
 		log.Printf("%s ERROR: Lobby's max player count {%d} already reached. Player cannot join!", funcLogPrefix, lobby.MaxPlayers)
 		return Session.Lobby{}, "", fmt.Errorf("ERROR: Lobby's max player count {%d} already reached", lobby.MaxPlayers)
+	}
+	if lobby.Status != Session.LobbyStatus_AwaitingStart {
+		log.Printf("%s Error: Game has already started. Player cannot join!", funcLogPrefix)
+		return Session.Lobby{}, "", fmt.Errorf("ERROR: Game has already started!")
 	}
 
 	thisPlayer := createPlayerObject(playerName)

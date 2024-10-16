@@ -4,14 +4,14 @@ package Pieces
 type PieceSet struct {
 	Decks      []Deck      `json:"decks"`
 	CardPlaces []CardPlace `json:"cardPlaces"`
-	Orphans    Deck        `json:"orphans"`
+	Orphans    []Card      `json:"orphans"`
 }
 
 //Copies all Decks/Cardplaces/Cards in the Orphans deck from [second] into the caller
 func (ps *PieceSet) Combine(second PieceSet) {
 	ps.Decks = append(ps.Decks, second.Decks...)
 	ps.CardPlaces = append(ps.CardPlaces, second.CardPlaces...)
-	ps.Orphans.Cards = append(ps.Orphans.Cards, second.Orphans.Cards...)
+	ps.Orphans = append(ps.Orphans, second.Orphans...)
 }
 
 // An outline for any piece the Game might use.
@@ -23,31 +23,21 @@ type GamePiece struct {
 	//A set of Player-defined properties for this Piece. Should have the form
 	// property: value in JSON
 	Tags map[string]string `json:"tags"`
-	//Position data for this GamePiece. See Position struct
-	Position Position `json:"position"`
-	//Style data for this GamePiece. See Style struct
-	Style Style `json:"style"`
-	//Id of the View this GamePiece belongs to. Used primarily to match up this piece to the correct view when it appears in a changelog during gameplay
-	ParentView string `json:"parentView"`
-}
 
-// Position data for a Piece
-type Position struct {
-	//The X position of this Piece. If this Piece is a child
-	//of some other Piece, this is relative to the parent
-	X float32 `json:"x"`
-	//The Y position of this Piece. If this Piece is a child
-	//of some other Piece, this is relative to the parent
-	Y float32 `json:"y"`
-}
-
-// A list of CSS rules to apply to a Piece. Super rough, but I figured I'd throw it in and see what everyone thinks
-type Style struct {
-	//A map of CSS rules, where the Key is the name of the rule and the Value is the rule.
-	//For example: Rules["color"] = "red" is equivalent to the CSS {color: red}
-	Rules map[string]string `json:"rules"`
 	//The [R,G,B,A] values for this card. As such, this array should be exactly 4 entries, in the order described
 	Color []int `json:"color"`
+	//The [R,G,B,A] values for this card. As such, this array should be exactly 4 entries, in the order described
+	PickColor []int `json:"pickColor"`
+	//Text that appears on this piece
+	Text string `json:"text"`
+
+	//The X position of this Piece. This is relative to the parent view
+	X float32 `json:"x"`
+	//The Y position of this Piece. This is relative to the parent view
+	Y float32 `json:"y"`
+
+	//Id of the View this GamePiece belongs to. Used primarily to match up this piece to the correct view when it appears in a changelog during gameplay
+	ParentView string `json:"parentView"`
 }
 
 // An outline for pieces that can contain other GamePieces. Whitelist is a dictionary
@@ -75,8 +65,6 @@ type Card struct {
 	GamePiece
 	//Optional description
 	Description string `json:"description"`
-	//Optional value, if having/playing a certain card might be good/bad
-	Value int `json:"value"`
 }
 
 /*
@@ -88,7 +76,7 @@ type CardPlace struct {
 	GamePiece
 	PieceContainer
 	//Cards currently in this CardPlace
-	PlacedCards []Card `json:"placedCards"`
+	Cards []Card `json:"cards"`
 }
 
 //An interface for any Piece that contains cards. Currently *Deck and *CardPlace implement this.

@@ -11,7 +11,7 @@ type Player struct {
 	//All the Views belonging to this Player, with their associated PieceSets
 	Hand []Game.View `json:"hand"`
 	//All the Resources this Player currently has
-	Resources []PlayerResource `json:"resources"`
+	//Resources []PlayerResource `json:"resources"`
 }
 
 // A resource that a Player currently possesses. Should have a name identical to

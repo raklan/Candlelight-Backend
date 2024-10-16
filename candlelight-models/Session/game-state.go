@@ -1,11 +1,8 @@
 package Session
 
 import (
-	"candlelight-models/Actions"
 	"candlelight-models/Game"
-	"candlelight-models/Pieces"
 	"candlelight-models/Player"
-	"candlelight-models/Rules"
 	"encoding/json"
 )
 
@@ -30,36 +27,18 @@ type GameState struct {
 	//The name of the GameDefinition that this game tracks. Added for rejoining players to be able to see the game's name
 	GameName string `json:"gameName"`
 	//A list of the states of each Player in the game.
-	PlayerStates []PlayerState `json:"playerStates"`
+	Players []Player.Player `json:"playerStates"`
 	//The player whose turn it currently is
-	CurrentPlayer PlayerState `json:"currentPlayer"`
-	//The current Phase the Game is in
-	CurrentPhase Rules.GamePhase `json:"currentPhase"`
+	//CurrentPlayer Player.Player `json:"currentPlayer"`
 	//The pieces (and their locations) as they are currently
 	Views []Game.View `json:"views"`
 }
 
-// The State of a certain Player. Right now, it just pairs a Player object with
-// a list of actions that Player is currently allowed to take
-type PlayerState struct {
-	//The list of Actions the given Player make take at this time.
-	//Any time you go through this, you should
-	//filter it by the Constraints within the Game's Rules list
-	AllowedActions Actions.ActionSet `json:"allowedActions"`
-	//The Player for this PlayerState
-	Player Player.Player `json:"player"`
-}
-
-// A struct containing any and all objects from a PieceSet that were affected by a SubmittedAction, as well
+// A struct containing any and all Views that were affected by a SubmittedAction, as well
 // as those objects' new states. One of these is generated and returned any time a Client submits an action,
 // regardless of whether the action was successful.
 type Changelog struct {
-	//Decks affected, represented in their updated state
-	Decks []Pieces.Deck
-	//CardPlaces affected, represented in their updated state
-	CardPlaces []Pieces.CardPlace
-	//Orphan Decks affected, represented in their updated state
-	OrphanDecks []Pieces.Deck
+	Views []Game.View `json:"views"`
 }
 
 // This is the way the frontend will send data to the backend during gameplay. They will
@@ -155,4 +134,26 @@ type EndTurn struct {
 // to ever think about this on the frontend
 type Turn interface {
 	Execute(gameState *GameState, player Player.Player) (Changelog, error)
+}
+
+type Insertion struct {
+	InsertPiece  string
+	FromView     string
+	ToCollection string
+	InView       string
+}
+
+type Withdrawl struct {
+	WithdrawPiece  string
+	FromCollection string
+	InView         string
+	ToView         string
+}
+
+type Movement struct {
+	PieceId  string
+	FromView string
+	ToView   string
+	AtX      float32
+	AtY      float32
 }

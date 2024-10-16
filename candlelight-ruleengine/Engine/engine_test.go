@@ -323,6 +323,7 @@ func saveDummyLobby() {
 	SaveLobbyInRedis(Session.Lobby{
 		RoomCode:         DUMMY_ID,
 		GameDefinitionId: DUMMY_ID,
+		Status:           Session.LobbyStatus_AwaitingStart,
 		NumPlayers:       0,
 		MaxPlayers:       4,
 		Players:          []Player.Player{},

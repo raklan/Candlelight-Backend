@@ -42,7 +42,7 @@ type GamePiece struct {
 	//Text that appears on this piece
 	Text string `json:"text"`
 	//Number of layers this piece has...I think?
-	Layers int `json:"layers"`
+	Layer int `json:"layer"`
 
 	//The X position of this Piece. This is relative to the parent view
 	X float32 `json:"x"`

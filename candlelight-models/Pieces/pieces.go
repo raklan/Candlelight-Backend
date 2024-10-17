@@ -14,6 +14,17 @@ func (ps *PieceSet) Combine(second PieceSet) {
 	ps.Orphans = append(ps.Orphans, second.Orphans...)
 }
 
+func (ps *PieceSet) GetCollections() []Card_Container {
+	toReturn := []Card_Container{}
+	for _, deck := range ps.Decks {
+		toReturn = append(toReturn, &deck)
+	}
+	for _, cardPlace := range ps.CardPlaces {
+		toReturn = append(toReturn, &cardPlace)
+	}
+	return toReturn
+}
+
 // An outline for any piece the Game might use.
 type GamePiece struct {
 	//Id for book keeping
@@ -82,6 +93,7 @@ type CardPlace struct {
 //An interface for any Piece that contains cards. Currently *Deck and *CardPlace implement this.
 //(Pointers used to ensure the methods called actually change the object, instead of a copy of it)
 type Card_Container interface {
+	GetId() string
 	AddCardToCollection(cardToAdd Card)
 	CardIsAllowed(card *Card) bool
 	CollectionLength() int

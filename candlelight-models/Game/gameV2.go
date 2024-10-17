@@ -1,7 +1,6 @@
 package Game
 
 import (
-	"candlelight-models/Actions"
 	"candlelight-models/Views"
 )
 
@@ -14,6 +13,5 @@ type GameV2 struct {
 	MaxPlayers int    `json:"maxPlayers"`
 	//Resources      []GameResource     `json:"resources"`
 	UI_Elements    []Views.UI_Element `json:"uiElements"`
-	Actions        Actions.ActionSet  `json:"actions"`
 	BeginningPhase string             `json:"beginningPhase"`
 }

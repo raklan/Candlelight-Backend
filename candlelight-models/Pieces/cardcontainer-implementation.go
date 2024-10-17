@@ -7,6 +7,10 @@ import (
 
 //============Deck Implementation==================
 
+func (deck *Deck) GetId() string {
+	return deck.Id
+}
+
 // Attempts to add the given card to Cards. Does no error checking
 func (deck *Deck) AddCardToCollection(cardToAdd Card) {
 	deck.Cards = append(deck.Cards, cardToAdd)
@@ -56,6 +60,10 @@ func (deck *Deck) CardIsAllowed(card *Card) bool {
 }
 
 //============CardPlace Implementation==================
+
+func (cp *CardPlace) GetId() string {
+	return cp.Id
+}
 
 // Attempts to add the given card to PlacedCards. Does no error checking
 func (cp *CardPlace) AddCardToCollection(cardToAdd Card) {

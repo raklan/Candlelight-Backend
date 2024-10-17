@@ -133,27 +133,33 @@ type EndTurn struct {
 // One of the possible Turn objects. This is solely for backend reference, and you should not have
 // to ever think about this on the frontend
 type Turn interface {
-	Execute(gameState *GameState, player Player.Player) (Changelog, error)
+	Execute(gameState *GameState, player *Player.Player) (Changelog, error)
 }
 
+const (
+	ActionType_Insertion = "Insertion"
+	ActionType_Withdrawl = "Withdrawl"
+	ActionType_Movement  = "Movement"
+)
+
 type Insertion struct {
-	InsertPiece  string
-	FromView     string
-	ToCollection string
-	InView       string
+	InsertCard   string `json:"insertCard"`
+	FromView     string `json:"fromView"`
+	ToCollection string `json:"toCollection"`
+	InView       string `json:"inView"`
 }
 
 type Withdrawl struct {
-	WithdrawPiece  string
-	FromCollection string
-	InView         string
-	ToView         string
+	WithdrawCard   string `json:"withdrawCard"`
+	FromCollection string `json:"fromCollection"`
+	InView         string `json:"inView"`
+	ToView         string `json:"toView"`
 }
 
 type Movement struct {
-	PieceId  string
-	FromView string
-	ToView   string
-	AtX      float32
-	AtY      float32
+	CardId   string  `json:"cardId"`
+	FromView string  `json:"fromView"`
+	ToView   string  `json:"toView"`
+	AtX      float32 `json:"toX"`
+	AtY      float32 `json:"toY"`
 }

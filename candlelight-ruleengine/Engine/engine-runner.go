@@ -2,7 +2,6 @@ package Engine
 
 import (
 	"candlelight-api/LogUtil"
-	"candlelight-models/Actions"
 	"candlelight-models/Game"
 	"candlelight-models/Player"
 	"candlelight-models/Session"
@@ -348,11 +347,6 @@ func EndGame(roomCode string, playerId string) error {
 	return err
 }
 
-func DeterminePlayerAllowedActions(gameState *Session.GameState, gameDef *Game.Game) Actions.ActionSet {
-	//TODO: Implement
-	return Actions.ActionSet{}
-}
-
 // Submits an Action to the GameState with id == [gameId]. Will always return some GameState, even if something goes wrong, in which case [error] will not be nil.
 // If the action is not allowed, [error] will indicate so, and it will simply return the GameState without any changes
 func SubmitAction(gameId string, action Session.SubmittedAction) (Session.Changelog, error) {
@@ -375,54 +369,30 @@ func SubmitAction(gameId string, action Session.SubmittedAction) (Session.Change
 	// }
 
 	switch action.Type {
-	case Session.MoveTurnType:
-		turn := Session.MoveTurn{}
+	case Session.ActionType_Insertion:
+		turn := Session.Insertion{}
 		err = json.Unmarshal(action.Turn, &turn)
 		if err != nil {
 			LogError(funcLogPrefix, err)
-			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into MoveTurn: %s", funcLogPrefix, err)
+			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into Insertion: %s", funcLogPrefix, err)
 		}
-		//changelog, _ = turn.Execute(&gameState, action.Player)
-	case Session.PieceUpdateTurnType:
-		turn := Session.PieceUpdateTurn{}
+		changelog, _ = turn.Execute(&gameState, &action.Player)
+	case Session.ActionType_Withdrawl:
+		turn := Session.Withdrawl{}
 		err = json.Unmarshal(action.Turn, &turn)
 		if err != nil {
 			LogError(funcLogPrefix, err)
-			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into PieceUpdateTurn: %s", funcLogPrefix, err)
+			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into Withdrawl: %s", funcLogPrefix, err)
 		}
-		//changelog, _ = turn.Execute(&gameState, action.Player)
-	case Session.PlacementTurnType:
-		turn := Session.PlacementTurn{}
+		changelog, _ = turn.Execute(&gameState, &action.Player)
+	case Session.ActionType_Movement:
+		turn := Session.Movement{}
 		err = json.Unmarshal(action.Turn, &turn)
 		if err != nil {
 			LogError(funcLogPrefix, err)
-			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into PlacementTurn: %s", funcLogPrefix, err)
+			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into Movement: %s", funcLogPrefix, err)
 		}
-		//changelog, _ = turn.Execute(&gameState, action.Player)
-	case Session.TakeTurnType:
-		turn := Session.TakeTurn{}
-		err = json.Unmarshal(action.Turn, &turn)
-		if err != nil {
-			LogError(funcLogPrefix, err)
-			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into TakeTurn: %s", funcLogPrefix, err)
-		}
-		//changelog, _ = turn.Execute(&gameState, action.Player)
-	case Session.TradeTurnType:
-		turn := Session.TradeTurn{}
-		err = json.Unmarshal(action.Turn, &turn)
-		if err != nil {
-			LogError(funcLogPrefix, err)
-			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into TradeTurn: %s", funcLogPrefix, err)
-		}
-		//changelog, _ = turn.Execute(&gameState, action.Player)
-	case Session.TransitionTurnType:
-		turn := Session.TransitionTurn{}
-		err = json.Unmarshal(action.Turn, &turn)
-		if err != nil {
-			LogError(funcLogPrefix, err)
-			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into TransitionTurn: %s", funcLogPrefix, err)
-		}
-		//changelog, _ = turn.Execute(&gameState, action.Player)
+		changelog, _ = turn.Execute(&gameState, &action.Player)
 	default:
 		return changelog, fmt.Errorf("%s Error - Submitted Action's type {%s} not recognized", funcLogPrefix, action.Type)
 	}

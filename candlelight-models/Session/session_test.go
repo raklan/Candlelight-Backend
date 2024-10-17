@@ -163,7 +163,7 @@ func TestInsertion_Execute(t *testing.T) {
 func TestWithdrawl_Execute(t *testing.T) {
 	var tests = []struct {
 		Name                      string
-		Withdrawl                 Withdrawl
+		Withdrawl                 Withdrawal
 		ExpectedChangelogLength   int
 		ShouldReturnError         bool
 		CardEndsInFirstView       bool
@@ -171,7 +171,7 @@ func TestWithdrawl_Execute(t *testing.T) {
 	}{
 		{
 			Name: "Valid Withdrawl",
-			Withdrawl: Withdrawl{
+			Withdrawl: Withdrawal{
 				WithdrawCard:   "withdrawCard",
 				FromCollection: "fromCollection",
 				InView:         "inView",
@@ -184,7 +184,7 @@ func TestWithdrawl_Execute(t *testing.T) {
 		},
 		{
 			Name: "Invalid Card",
-			Withdrawl: Withdrawl{
+			Withdrawl: Withdrawal{
 				WithdrawCard:   "invalid",
 				FromCollection: "fromCollection",
 				InView:         "inView",
@@ -197,7 +197,7 @@ func TestWithdrawl_Execute(t *testing.T) {
 		},
 		{
 			Name: "Invalid Collection",
-			Withdrawl: Withdrawl{
+			Withdrawl: Withdrawal{
 				WithdrawCard:   "withdrawCard",
 				FromCollection: "invalid",
 				InView:         "inView",
@@ -210,7 +210,7 @@ func TestWithdrawl_Execute(t *testing.T) {
 		},
 		{
 			Name: "Invalid First View",
-			Withdrawl: Withdrawl{
+			Withdrawl: Withdrawal{
 				WithdrawCard:   "withdrawCard",
 				FromCollection: "fromCollection",
 				InView:         "invalid",
@@ -223,7 +223,7 @@ func TestWithdrawl_Execute(t *testing.T) {
 		},
 		{
 			Name: "Invalid Destination",
-			Withdrawl: Withdrawl{
+			Withdrawl: Withdrawal{
 				WithdrawCard:   "withdrawCard",
 				FromCollection: "fromCollection",
 				InView:         "inView",

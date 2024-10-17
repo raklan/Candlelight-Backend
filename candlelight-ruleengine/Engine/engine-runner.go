@@ -377,8 +377,8 @@ func SubmitAction(gameId string, action Session.SubmittedAction) (Session.Change
 			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into Insertion: %s", funcLogPrefix, err)
 		}
 		changelog, _ = turn.Execute(&gameState, &action.Player)
-	case Session.ActionType_Withdrawl:
-		turn := Session.Withdrawl{}
+	case Session.ActionType_Withdrawal:
+		turn := Session.Withdrawal{}
 		err = json.Unmarshal(action.Turn, &turn)
 		if err != nil {
 			LogError(funcLogPrefix, err)

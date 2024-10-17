@@ -7,9 +7,9 @@ import (
 )
 
 const (
-	ActionType_Insertion = "Insertion"
-	ActionType_Withdrawl = "Withdrawl"
-	ActionType_Movement  = "Movement"
+	ActionType_Insertion  = "Insertion"
+	ActionType_Withdrawal = "Withdrawal"
+	ActionType_Movement   = "Movement"
 )
 
 /*
@@ -76,8 +76,8 @@ type Movement struct {
 	AtY float32 `json:"toY"`
 }
 
-// A Withdrawl is defined as a Player moving a Card out of a Card Collection into the Orphans of a certain View
-type Withdrawl struct {
+// A Withdrawal is defined as a Player moving a Card out of a Card Collection into the Orphans of a certain View
+type Withdrawal struct {
 	//The Id of the Card to Withdraw. Leave blank to be given an random card from [FromCollection]
 	WithdrawCard string `json:"withdrawCard"`
 	//The Collection a [WithdrawCard ]is to be withdrawn from.

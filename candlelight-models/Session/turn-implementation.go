@@ -56,7 +56,7 @@ func (ins Insertion) Execute(gameState *GameState, player *Player.Player) (Chang
 	return changelog, nil
 }
 
-func (with Withdrawl) Execute(gameState *GameState, player *Player.Player) (Changelog, error) {
+func (with Withdrawal) Execute(gameState *GameState, player *Player.Player) (Changelog, error) {
 	changelog := Changelog{}
 	var err error = nil
 

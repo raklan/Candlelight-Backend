@@ -16,11 +16,11 @@ func (ps *PieceSet) Combine(second PieceSet) {
 
 func (ps *PieceSet) GetCollections() []Card_Container {
 	toReturn := []Card_Container{}
-	for _, deck := range ps.Decks {
-		toReturn = append(toReturn, &deck)
+	for index := range ps.Decks {
+		toReturn = append(toReturn, &ps.Decks[index])
 	}
-	for _, cardPlace := range ps.CardPlaces {
-		toReturn = append(toReturn, &cardPlace)
+	for index := range ps.CardPlaces {
+		toReturn = append(toReturn, &ps.CardPlaces[index])
 	}
 	return toReturn
 }
@@ -94,6 +94,7 @@ type CardPlace struct {
 //(Pointers used to ensure the methods called actually change the object, instead of a copy of it)
 type Card_Container interface {
 	GetId() string
+	GetXY() (float32, float32)
 	AddCardToCollection(cardToAdd Card)
 	CardIsAllowed(card *Card) bool
 	CollectionLength() int

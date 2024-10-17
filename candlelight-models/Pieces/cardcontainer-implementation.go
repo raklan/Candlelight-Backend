@@ -11,6 +11,10 @@ func (deck *Deck) GetId() string {
 	return deck.Id
 }
 
+func (deck *Deck) GetXY() (float32, float32) {
+	return deck.X, deck.Y
+}
+
 // Attempts to add the given card to Cards. Does no error checking
 func (deck *Deck) AddCardToCollection(cardToAdd Card) {
 	deck.Cards = append(deck.Cards, cardToAdd)
@@ -63,6 +67,10 @@ func (deck *Deck) CardIsAllowed(card *Card) bool {
 
 func (cp *CardPlace) GetId() string {
 	return cp.Id
+}
+
+func (cp *CardPlace) GetXY() (float32, float32) {
+	return cp.X, cp.Y
 }
 
 // Attempts to add the given card to PlacedCards. Does no error checking

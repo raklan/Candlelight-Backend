@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 )
 
+// Supported valued for SubmittedAction.Type. Make sure this matches up with the object you put
+// in the Turn field
 const (
 	ActionType_Insertion  = "Insertion"
 	ActionType_Withdrawal = "Withdrawal"
@@ -31,7 +33,7 @@ type GameState struct {
 	Views []Game.View `json:"views"`
 }
 
-// A struct containing any and all Views that were affected by a SubmittedAction, as well
+// A struct containing any and all Views that could have been affected by a SubmittedAction, as well
 // as those objects' new states. One of these is generated and returned any time a Client submits an action,
 // regardless of whether the action was successful.
 type Changelog struct {
@@ -40,7 +42,7 @@ type Changelog struct {
 
 // This is the way the frontend will send data to the backend during gameplay. They will
 // send one of these objects, then the Rule Engine will take it, perform any updates to the
-// internal model of the Game, then respond with a GameState
+// internal model of the Game, then respond with a Changelog
 type SubmittedAction struct {
 	//The type of Turn you want to take. Should match exactly with the name of one of the below structs (i.e. "Movement", "Insertion", etc)
 	Type string `json:"type"`

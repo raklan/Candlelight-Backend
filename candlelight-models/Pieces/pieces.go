@@ -36,9 +36,9 @@ type GamePiece struct {
 	Tags map[string]string `json:"tags"`
 
 	//The [R,G,B,A] values for this card. As such, this array should be exactly 4 entries, in the order described
-	Color []int `json:"color"`
+	Color []float32 `json:"color"`
 	//The [R,G,B,A] values for this card. As such, this array should be exactly 4 entries, in the order described
-	PickColor []int `json:"pickColor"`
+	PickColor []float32 `json:"pickColor"`
 	//Text that appears on this piece
 	Text string `json:"text"`
 

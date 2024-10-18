@@ -12,17 +12,22 @@ func (ins Insertion) Execute(gameState *GameState, player *Player.Player) (Chang
 	changelog := Changelog{}
 	var err error = nil
 
+	playerToUse := findPlayerInGameState(player.Id, gameState)
+	if playerToUse == nil {
+		return changelog, fmt.Errorf("could not find player in gamestate")
+	}
+
 	//IMPORTANT: DO ALL ERROR-CHECKING BEFORE CHANGING THE GAMESTATE
 
 	//Check for Views first so we can get them in the Changelog if applicable
-	takingFromView := findView(gameState, player, ins.FromView)
+	takingFromView := findView(gameState, playerToUse, ins.FromView)
 	if takingFromView == nil {
 		err = fmt.Errorf("could not find View to take from with Id == {%s}", ins.FromView)
 	} else {
 		changelog.Views = append(changelog.Views, takingFromView)
 	}
 
-	intoView := findView(gameState, player, ins.InView)
+	intoView := findView(gameState, playerToUse, ins.InView)
 	if intoView == nil {
 		err = fmt.Errorf("could not find View to insert into with Id == {%s}", ins.InView)
 	} else {
@@ -62,15 +67,20 @@ func (with Withdrawal) Execute(gameState *GameState, player *Player.Player) (Cha
 
 	//IMPORTANT: DO ALL ERROR-CHECKING BEFORE CHANGING THE GAMESTATE
 
+	playerToUse := findPlayerInGameState(player.Id, gameState)
+	if playerToUse == nil {
+		return changelog, fmt.Errorf("could not find player in gamestate")
+	}
+
 	//Check for Views first so we can get them in the Changelog if applicable
-	takingFromView := findView(gameState, player, with.InView)
+	takingFromView := findView(gameState, playerToUse, with.InView)
 	if takingFromView == nil {
 		err = fmt.Errorf("could not find View to take from with Id == {%s}", with.InView)
 	} else {
 		changelog.Views = append(changelog.Views, takingFromView)
 	}
 
-	intoView := findView(gameState, player, with.ToView)
+	intoView := findView(gameState, playerToUse, with.ToView)
 	if intoView == nil {
 		err = fmt.Errorf("could not find View to insert into with Id == {%s}", with.ToView)
 	} else {
@@ -114,14 +124,19 @@ func (move Movement) Execute(gameState *GameState, player *Player.Player) (Chang
 	changelog := Changelog{}
 	var err error = nil
 
-	takingFromView := findView(gameState, player, move.FromView)
+	playerToUse := findPlayerInGameState(player.Id, gameState)
+	if playerToUse == nil {
+		return changelog, fmt.Errorf("could not find player in gamestate")
+	}
+
+	takingFromView := findView(gameState, playerToUse, move.FromView)
 	if takingFromView == nil {
 		err = fmt.Errorf("could not find View to take from with Id == {%s}", move.FromView)
 	} else {
 		changelog.Views = append(changelog.Views, takingFromView)
 	}
 
-	intoView := findView(gameState, player, move.ToView)
+	intoView := findView(gameState, playerToUse, move.ToView)
 	if intoView == nil {
 		err = fmt.Errorf("could not find View to insert into with Id == {%s}", move.ToView)
 	} else {
@@ -180,6 +195,15 @@ func findCardInOrphans(pieceId string, view *Game.View) *Pieces.Card {
 	for index, card := range view.Pieces.Orphans {
 		if card.Id == pieceId {
 			return &view.Pieces.Orphans[index]
+		}
+	}
+	return nil
+}
+
+func findPlayerInGameState(playerId string, gameState *GameState) *Player.Player {
+	for index, player := range gameState.Players {
+		if player.Id == playerId {
+			return &gameState.Players[index]
 		}
 	}
 	return nil

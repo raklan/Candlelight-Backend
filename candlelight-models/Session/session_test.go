@@ -391,6 +391,10 @@ func TestMovement_Execute(t *testing.T) {
 				},
 			}
 
+			me := Player.Player{
+				Id: "me",
+			}
+
 			fromView := Game.View{
 				Id: "fromView",
 				Pieces: Pieces.PieceSet{
@@ -406,13 +410,14 @@ func TestMovement_Execute(t *testing.T) {
 			}
 
 			gameState := GameState{
+				Players: []Player.Player{me},
 				Views: []Game.View{
 					fromView,
 					toView,
 				},
 			}
 
-			changelog, err := tt.Movement.Execute(&gameState, &Player.Player{})
+			changelog, err := tt.Movement.Execute(&gameState, &me)
 
 			//Check if we got an error when we shouldn't have, and vice versa
 			if tt.ShouldReturnError != (err != nil) {

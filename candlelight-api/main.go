@@ -14,6 +14,8 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
+const SERVER_VERSION = "v0.2.13"
+
 func main() {
 	startServer()
 }
@@ -54,6 +56,7 @@ func startServer() {
 func registerPathHandlers(mux *http.ServeMux) {
 	mux.HandleFunc("/", heartbeat)
 	mux.HandleFunc("/dummy", CreationStudio.GenerateJSON)
+	mux.HandleFunc("/version", version)
 
 	//Gamedef-related requests
 	mux.HandleFunc("/studio", CreationStudio.Studio)
@@ -74,4 +77,9 @@ func registerPathHandlers(mux *http.ServeMux) {
 func heartbeat(w http.ResponseWriter, r *http.Request) {
 	log.Println("==Heartbeat==: Returning dummy response...")
 	fmt.Fprintf(w, "Buh-dump, buh-dump")
+}
+
+func version(w http.ResponseWriter, r *http.Request) {
+	log.Printf("==Version==: Returning Server Version (%s)", SERVER_VERSION)
+	fmt.Fprint(w, SERVER_VERSION)
 }

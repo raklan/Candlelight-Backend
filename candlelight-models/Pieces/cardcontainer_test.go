@@ -52,11 +52,11 @@ func TestAddCards(t *testing.T) {
 			} else if c, ok := tt.container.(*CardPlace); ok {
 				//Starting with empty container, so we can just compare the length of the
 				//card container with the length of the cards we were supposed to add
-				if len(c.PlacedCards) != len(tt.cards) {
-					t.Errorf("%s -- Wrong # of Cards. Expected {%d}, Got {%d}", tt.name, len(c.PlacedCards), len(tt.cards))
+				if len(c.Cards) != len(tt.cards) {
+					t.Errorf("%s -- Wrong # of Cards. Expected {%d}, Got {%d}", tt.name, len(c.Cards), len(tt.cards))
 				}
 
-				for _, card := range c.PlacedCards {
+				for _, card := range c.Cards {
 					if !cardIsInCardPlace(c, card) {
 						t.Errorf("%s -- Couldn't find Card with ID == {%s} in CardPlace's Cards", tt.name, card.Id)
 					}
@@ -200,16 +200,16 @@ func TestRemoveCard(t *testing.T) {
 				}
 			} else if c, ok := tt.container.(*CardPlace); ok {
 				if tt.cardShouldBeRemoved {
-					if len(c.PlacedCards) != originalCollectionLength-1 {
-						t.Errorf("%s -- Length of Deck's cards not right! Expected {%d}, Got {%d}", tt.name, originalCollectionLength-1, len(c.PlacedCards))
+					if len(c.Cards) != originalCollectionLength-1 {
+						t.Errorf("%s -- Length of Deck's cards not right! Expected {%d}, Got {%d}", tt.name, originalCollectionLength-1, len(c.Cards))
 					}
 
 					if cardIsInCardPlace(c, tt.card) {
 						t.Errorf("%s -- Card still present in CardPlace's Cards!", tt.name)
 					}
 				} else {
-					if len(c.PlacedCards) != originalCollectionLength {
-						t.Errorf("%s -- Length of CardPlace's cards changed! Original Len {%d}, New Len {%d}", tt.name, originalCollectionLength, len(c.PlacedCards))
+					if len(c.Cards) != originalCollectionLength {
+						t.Errorf("%s -- Length of CardPlace's cards changed! Original Len {%d}, New Len {%d}", tt.name, originalCollectionLength, len(c.Cards))
 					}
 				}
 			} else {
@@ -276,7 +276,6 @@ func TestCardIsAllowed(t *testing.T) {
 					},
 				},
 				Description: "A dummy card",
-				Value:       0,
 			},
 			shouldBeAllowed: true,
 		},
@@ -304,7 +303,6 @@ func TestCardIsAllowed(t *testing.T) {
 					},
 				},
 				Description: "A dummy card",
-				Value:       0,
 			},
 			shouldBeAllowed: false,
 		},
@@ -321,7 +319,7 @@ func TestCardIsAllowed(t *testing.T) {
 						"color": []string{"red"},
 					},
 				},
-				PlacedCards: []Card{},
+				Cards: []Card{},
 			},
 			card: Card{
 				GamePiece: GamePiece{
@@ -332,7 +330,6 @@ func TestCardIsAllowed(t *testing.T) {
 					},
 				},
 				Description: "A dummy card",
-				Value:       0,
 			},
 			shouldBeAllowed: true,
 		},
@@ -349,7 +346,7 @@ func TestCardIsAllowed(t *testing.T) {
 						"color": []string{"red"},
 					},
 				},
-				PlacedCards: []Card{},
+				Cards: []Card{},
 			},
 			card: Card{
 				GamePiece: GamePiece{
@@ -360,7 +357,6 @@ func TestCardIsAllowed(t *testing.T) {
 					},
 				},
 				Description: "A dummy card",
-				Value:       0,
 			},
 			shouldBeAllowed: false,
 		},
@@ -401,14 +397,14 @@ func TestCollectionLength(t *testing.T) {
 		{
 			name: "CardPlace With 1 Card",
 			container: &CardPlace{
-				PlacedCards: []Card{getDummyCard()},
+				Cards: []Card{getDummyCard()},
 			},
 			expectedLength: 1,
 		},
 		{
 			name: "CardPlace With 3 Cards",
 			container: &CardPlace{
-				PlacedCards: []Card{getDummyCard(), getDummyCard(), getDummyCard()},
+				Cards: []Card{getDummyCard(), getDummyCard(), getDummyCard()},
 			},
 			expectedLength: 3,
 		},
@@ -449,7 +445,7 @@ func cardIsInDeck(deck *Deck, card Card) bool { //Have to manually implement the
 
 func cardIsInCardPlace(cardPlace *CardPlace, card Card) bool { //Have to manually implement these
 	//Can't compare the structs directly right now, so just compare IDs
-	for _, c := range cardPlace.PlacedCards {
+	for _, c := range cardPlace.Cards {
 		if card.Id == c.Id {
 			return true
 		}
@@ -516,7 +512,7 @@ func getEmptyCardPlace() *CardPlace {
 		PieceContainer: PieceContainer{
 			TagsWhitelist: map[string][]string{},
 		},
-		PlacedCards: []Card{},
+		Cards: []Card{},
 	}
 }
 
@@ -530,7 +526,7 @@ func getCardPlaceWithCards() *CardPlace {
 		PieceContainer: PieceContainer{
 			TagsWhitelist: map[string][]string{},
 		},
-		PlacedCards: []Card{
+		Cards: []Card{
 			{
 				GamePiece: GamePiece{
 					Id: "1",
@@ -563,6 +559,5 @@ func getDummyCard() Card {
 			Tags: map[string]string{},
 		},
 		Description: "A dummy card",
-		Value:       0,
 	}
 }

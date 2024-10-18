@@ -2,7 +2,6 @@ package Engine
 
 import (
 	"candlelight-api/LogUtil"
-	"candlelight-models/Actions"
 	"candlelight-models/Game"
 	"candlelight-models/Player"
 	"candlelight-models/Session"
@@ -270,36 +269,33 @@ func GetInitialGameState(roomCode string) (Session.GameState, error) {
 
 	gameState.GameDefinitionId = gameDef.Id
 	gameState.GameName = gameDef.Name
-	gameState.CurrentPhase = gameDef.BeginningPhase
+	//gameState.CurrentPhase = gameDef.BeginningPhase
 	gameState.Views = gameDef.ViewsForPlayer(0) //Player 0 == public/table-owned
 
-	startingResources := make([]Player.PlayerResource, len(gameDef.Resources))
+	//startingResources := make([]Player.PlayerResource, len(gameDef.Resources))
 
 	//Construct starting resources for each player
-	for _, element := range gameDef.Resources {
-		startingResources = append(startingResources, Player.PlayerResource{
-			Name:         element.Name,
-			CurrentValue: element.InitialValue,
-			MaxValue:     element.MaxValue,
-		})
-	}
+	// for _, element := range gameDef.Resources {
+	// 	startingResources = append(startingResources, Player.PlayerResource{
+	// 		Name:         element.Name,
+	// 		CurrentValue: element.InitialValue,
+	// 		MaxValue:     element.MaxValue,
+	// 	})
+	// }
 
-	gameState.PlayerStates = []Session.PlayerState{}
+	gameState.Players = []Player.Player{}
 
 	for index, element := range lobby.Players {
-		gameState.PlayerStates = append(gameState.PlayerStates, Session.PlayerState{
-			AllowedActions: Actions.ActionSet{},
-			Player: Player.Player{
-				Id:        element.Id,
-				Name:      element.Name,
-				Hand:      gameDef.ViewsForPlayer(index + 1), //TODO: Need a more in-depth discussion about what to do in terms of determining starting pieces
-				Resources: slices.Clone(startingResources),
-			},
+		gameState.Players = append(gameState.Players, Player.Player{
+			Id:   element.Id,
+			Name: element.Name,
+			Hand: gameDef.ViewsForPlayer(index + 1), //TODO: Need a more in-depth discussion about what to do in terms of determining starting pieces
+			//Resources: slices.Clone(startingResources),
 		})
 	}
 
-	gameState.CurrentPlayer = gameState.PlayerStates[0] //TODO: Make a better way to determine a starting player maybe?
-	gameState.CurrentPlayer.AllowedActions = DeterminePlayerAllowedActions(&gameState, &gameDef)
+	//gameState.CurrentPlayer = gameState.PlayerStates[0] //TODO: Make a better way to determine a starting player maybe?
+	//gameState.CurrentPlayer.AllowedActions = DeterminePlayerAllowedActions(&gameState, &gameDef)
 
 	gameState, err = CacheGameStateInRedis(gameState)
 	if err != nil {
@@ -351,11 +347,6 @@ func EndGame(roomCode string, playerId string) error {
 	return err
 }
 
-func DeterminePlayerAllowedActions(gameState *Session.GameState, gameDef *Game.Game) Actions.ActionSet {
-	//TODO: Implement
-	return Actions.ActionSet{}
-}
-
 // Submits an Action to the GameState with id == [gameId]. Will always return some GameState, even if something goes wrong, in which case [error] will not be nil.
 // If the action is not allowed, [error] will indicate so, and it will simply return the GameState without any changes
 func SubmitAction(gameId string, action Session.SubmittedAction) (Session.Changelog, error) {
@@ -378,54 +369,30 @@ func SubmitAction(gameId string, action Session.SubmittedAction) (Session.Change
 	// }
 
 	switch action.Type {
-	case Session.MoveTurnType:
-		turn := Session.MoveTurn{}
+	case Session.ActionType_Insertion:
+		turn := Session.Insertion{}
 		err = json.Unmarshal(action.Turn, &turn)
 		if err != nil {
 			LogError(funcLogPrefix, err)
-			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into MoveTurn: %s", funcLogPrefix, err)
+			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into Insertion: %s", funcLogPrefix, err)
 		}
-		changelog, _ = turn.Execute(&gameState, action.Player)
-	case Session.PieceUpdateTurnType:
-		turn := Session.PieceUpdateTurn{}
+		changelog, _ = turn.Execute(&gameState, &action.Player)
+	case Session.ActionType_Withdrawal:
+		turn := Session.Withdrawal{}
 		err = json.Unmarshal(action.Turn, &turn)
 		if err != nil {
 			LogError(funcLogPrefix, err)
-			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into PieceUpdateTurn: %s", funcLogPrefix, err)
+			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into Withdrawl: %s", funcLogPrefix, err)
 		}
-		changelog, _ = turn.Execute(&gameState, action.Player)
-	case Session.PlacementTurnType:
-		turn := Session.PlacementTurn{}
+		changelog, _ = turn.Execute(&gameState, &action.Player)
+	case Session.ActionType_Movement:
+		turn := Session.Movement{}
 		err = json.Unmarshal(action.Turn, &turn)
 		if err != nil {
 			LogError(funcLogPrefix, err)
-			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into PlacementTurn: %s", funcLogPrefix, err)
+			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into Movement: %s", funcLogPrefix, err)
 		}
-		changelog, _ = turn.Execute(&gameState, action.Player)
-	case Session.TakeTurnType:
-		turn := Session.TakeTurn{}
-		err = json.Unmarshal(action.Turn, &turn)
-		if err != nil {
-			LogError(funcLogPrefix, err)
-			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into TakeTurn: %s", funcLogPrefix, err)
-		}
-		changelog, _ = turn.Execute(&gameState, action.Player)
-	case Session.TradeTurnType:
-		turn := Session.TradeTurn{}
-		err = json.Unmarshal(action.Turn, &turn)
-		if err != nil {
-			LogError(funcLogPrefix, err)
-			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into TradeTurn: %s", funcLogPrefix, err)
-		}
-		changelog, _ = turn.Execute(&gameState, action.Player)
-	case Session.TransitionTurnType:
-		turn := Session.TransitionTurn{}
-		err = json.Unmarshal(action.Turn, &turn)
-		if err != nil {
-			LogError(funcLogPrefix, err)
-			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into TransitionTurn: %s", funcLogPrefix, err)
-		}
-		changelog, _ = turn.Execute(&gameState, action.Player)
+		changelog, _ = turn.Execute(&gameState, &action.Player)
 	default:
 		return changelog, fmt.Errorf("%s Error - Submitted Action's type {%s} not recognized", funcLogPrefix, action.Type)
 	}
@@ -641,9 +608,9 @@ func createPlayerObject(name string) Player.Player {
 	log.Printf("%s Creating Player object for Player name {%s}", funcLogPrefix, name)
 
 	return Player.Player{
-		Id:        GenerateId(),
-		Name:      name,
-		Hand:      []Game.View{},
-		Resources: []Player.PlayerResource{},
+		Id:   GenerateId(),
+		Name: name,
+		Hand: []Game.View{},
+		//Resources: []Player.PlayerResource{},
 	}
 }

@@ -187,7 +187,6 @@ func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 		Genre:      "Happy and fun",
 		Author:     "Ryan",
 		MaxPlayers: 4,
-		Resources:  []Game.GameResource{},
 		Views: []Game.View{
 			{
 				Id:                sharedViewId,
@@ -200,8 +199,6 @@ func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 								ParentView: sharedViewId,
 								Name:       "Ancient Deck",
 								Tags:       map[string]string{},
-								Position:   Pieces.Position{X: 0, Y: 0},
-								Style:      Pieces.Style{},
 							},
 							Cards: []Pieces.Card{
 								{
@@ -213,7 +210,6 @@ func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 										},
 										ParentView: sharedViewId,
 									},
-									Value: 1,
 								},
 								{
 									GamePiece: Pieces.GamePiece{
@@ -224,7 +220,6 @@ func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 										},
 										ParentView: sharedViewId,
 									},
-									Value: 2,
 								},
 								{
 									GamePiece: Pieces.GamePiece{
@@ -235,7 +230,6 @@ func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 										},
 										ParentView: sharedViewId,
 									},
-									Value: 3,
 								},
 								{
 									GamePiece: Pieces.GamePiece{
@@ -246,7 +240,6 @@ func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 										},
 										ParentView: sharedViewId,
 									},
-									Value: 4,
 								},
 								{
 									GamePiece: Pieces.GamePiece{
@@ -257,7 +250,6 @@ func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 										},
 										ParentView: sharedViewId,
 									},
-									Value: 5,
 								},
 								{
 									GamePiece: Pieces.GamePiece{
@@ -268,7 +260,6 @@ func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 										},
 										ParentView: sharedViewId,
 									},
-									Value: 6,
 								},
 							},
 						},
@@ -278,8 +269,6 @@ func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 								ParentView: sharedViewId,
 								Name:       "Primitive Deck",
 								Tags:       map[string]string{},
-								Position:   Pieces.Position{X: 0, Y: 0},
-								Style:      Pieces.Style{},
 							},
 							Cards: []Pieces.Card{
 								{
@@ -291,7 +280,6 @@ func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 										},
 										ParentView: sharedViewId,
 									},
-									Value: 1,
 								},
 								{
 									GamePiece: Pieces.GamePiece{
@@ -302,7 +290,6 @@ func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 										},
 										ParentView: sharedViewId,
 									},
-									Value: 2,
 								},
 								{
 									GamePiece: Pieces.GamePiece{
@@ -313,7 +300,6 @@ func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 										},
 										ParentView: sharedViewId,
 									},
-									Value: 3,
 								},
 								{
 									GamePiece: Pieces.GamePiece{
@@ -324,7 +310,6 @@ func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 										},
 										ParentView: sharedViewId,
 									},
-									Value: 4,
 								},
 								{
 									GamePiece: Pieces.GamePiece{
@@ -335,7 +320,6 @@ func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 										},
 										ParentView: sharedViewId,
 									},
-									Value: 5,
 								},
 								{
 									GamePiece: Pieces.GamePiece{
@@ -346,7 +330,6 @@ func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 										},
 										ParentView: sharedViewId,
 									},
-									Value: 6,
 								},
 							},
 						},
@@ -358,10 +341,8 @@ func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 								ParentView: sharedViewId,
 								Name:       "Prehistoric World",
 								Tags:       map[string]string{},
-								Position:   Pieces.Position{X: 0, Y: 0},
-								Style:      Pieces.Style{},
 							},
-							PlacedCards: []Pieces.Card{},
+							Cards: []Pieces.Card{},
 						},
 						{
 							GamePiece: Pieces.GamePiece{
@@ -369,10 +350,8 @@ func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 								ParentView: sharedViewId,
 								Name:       "Old World",
 								Tags:       map[string]string{},
-								Position:   Pieces.Position{X: 0, Y: 0},
-								Style:      Pieces.Style{},
 							},
-							PlacedCards: []Pieces.Card{},
+							Cards: []Pieces.Card{},
 						},
 						{
 							GamePiece: Pieces.GamePiece{
@@ -380,10 +359,8 @@ func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 								ParentView: sharedViewId,
 								Name:       "Modern World",
 								Tags:       map[string]string{},
-								Position:   Pieces.Position{X: 0, Y: 0},
-								Style:      Pieces.Style{},
 							},
-							PlacedCards: []Pieces.Card{},
+							Cards: []Pieces.Card{},
 						},
 						{
 							GamePiece: Pieces.GamePiece{
@@ -391,19 +368,17 @@ func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 								ParentView: sharedViewId,
 								Name:       "Space World",
 								Tags:       map[string]string{},
-								Position:   Pieces.Position{X: 0, Y: 0},
-								Style:      Pieces.Style{},
 							},
-							PlacedCards: []Pieces.Card{},
+							Cards: []Pieces.Card{},
 						},
 					},
-					Orphans: Pieces.Deck{
-						GamePiece: Pieces.GamePiece{
-							Id:         Engine.GenerateId(),
-							ParentView: sharedViewId,
-						},
-						Cards: []Pieces.Card{},
-					},
+					// Orphans: Pieces.Deck{
+					// 	GamePiece: Pieces.GamePiece{
+					// 		Id:         Engine.GenerateId(),
+					// 		ParentView: sharedViewId,
+					// 	},
+					// 	Cards: []Pieces.Card{},
+					// },
 				},
 			},
 			{
@@ -425,16 +400,16 @@ func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 								Id:         Engine.GenerateId(),
 								ParentView: player1ViewId,
 							},
-							PlacedCards: []Pieces.Card{},
+							Cards: []Pieces.Card{},
 						},
 					},
-					Orphans: Pieces.Deck{
-						GamePiece: Pieces.GamePiece{
-							Id:         Engine.GenerateId(),
-							ParentView: player1ViewId,
-						},
-						Cards: []Pieces.Card{},
-					},
+					// Orphans: Pieces.Deck{
+					// 	GamePiece: Pieces.GamePiece{
+					// 		Id:         Engine.GenerateId(),
+					// 		ParentView: player1ViewId,
+					// 	},
+					// 	Cards: []Pieces.Card{},
+					// },
 				},
 			},
 			{
@@ -456,16 +431,16 @@ func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 								Id:         Engine.GenerateId(),
 								ParentView: player2ViewId,
 							},
-							PlacedCards: []Pieces.Card{},
+							Cards: []Pieces.Card{},
 						},
 					},
-					Orphans: Pieces.Deck{
-						GamePiece: Pieces.GamePiece{
-							Id:         Engine.GenerateId(),
-							ParentView: player2ViewId,
-						},
-						Cards: []Pieces.Card{},
-					},
+					// Orphans: Pieces.Deck{
+					// 	GamePiece: Pieces.GamePiece{
+					// 		Id:         Engine.GenerateId(),
+					// 		ParentView: player2ViewId,
+					// 	},
+					// 	Cards: []Pieces.Card{},
+					// },
 				},
 			},
 			{
@@ -487,16 +462,16 @@ func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 								Id:         Engine.GenerateId(),
 								ParentView: player3ViewId,
 							},
-							PlacedCards: []Pieces.Card{},
+							Cards: []Pieces.Card{},
 						},
 					},
-					Orphans: Pieces.Deck{
-						GamePiece: Pieces.GamePiece{
-							Id:         Engine.GenerateId(),
-							ParentView: player3ViewId,
-						},
-						Cards: []Pieces.Card{},
-					},
+					// Orphans: Pieces.Deck{
+					// 	GamePiece: Pieces.GamePiece{
+					// 		Id:         Engine.GenerateId(),
+					// 		ParentView: player3ViewId,
+					// 	},
+					// 	Cards: []Pieces.Card{},
+					// },
 				},
 			},
 			{
@@ -518,16 +493,16 @@ func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 								Id:         Engine.GenerateId(),
 								ParentView: player4ViewId,
 							},
-							PlacedCards: []Pieces.Card{},
+							Cards: []Pieces.Card{},
 						},
 					},
-					Orphans: Pieces.Deck{
-						GamePiece: Pieces.GamePiece{
-							Id:         Engine.GenerateId(),
-							ParentView: player4ViewId,
-						},
-						Cards: []Pieces.Card{},
-					},
+					// Orphans: Pieces.Deck{
+					// 	GamePiece: Pieces.GamePiece{
+					// 		Id:         Engine.GenerateId(),
+					// 		ParentView: player4ViewId,
+					// 	},
+					// 	Cards: []Pieces.Card{},
+					// },
 				},
 			},
 		},

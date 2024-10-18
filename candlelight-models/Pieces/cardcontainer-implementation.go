@@ -7,6 +7,14 @@ import (
 
 //============Deck Implementation==================
 
+func (deck *Deck) GetId() string {
+	return deck.Id
+}
+
+func (deck *Deck) GetXY() (float32, float32) {
+	return deck.X, deck.Y
+}
+
 // Attempts to add the given card to Cards. Does no error checking
 func (deck *Deck) AddCardToCollection(cardToAdd Card) {
 	deck.Cards = append(deck.Cards, cardToAdd)
@@ -57,29 +65,37 @@ func (deck *Deck) CardIsAllowed(card *Card) bool {
 
 //============CardPlace Implementation==================
 
+func (cp *CardPlace) GetId() string {
+	return cp.Id
+}
+
+func (cp *CardPlace) GetXY() (float32, float32) {
+	return cp.X, cp.Y
+}
+
 // Attempts to add the given card to PlacedCards. Does no error checking
 func (cp *CardPlace) AddCardToCollection(cardToAdd Card) {
-	cp.PlacedCards = append(cp.PlacedCards, cardToAdd)
+	cp.Cards = append(cp.Cards, cardToAdd)
 }
 
 // Attempts to remove any Cards with an ID == [card].Id -- Does not do any error checking
 func (cp *CardPlace) RemoveCardFromCollection(card Card) {
-	cp.PlacedCards = slices.DeleteFunc(cp.PlacedCards, func(c Card) bool { return c.Id == card.Id })
+	cp.Cards = slices.DeleteFunc(cp.Cards, func(c Card) bool { return c.Id == card.Id })
 }
 
 // Attempts to find a card with the given id in PlacedCards. Returns a pointer to the found card
 // if found, or nil otherwise
 func (cp *CardPlace) FindCardInCollection(cardId string) *Card {
-	foundIndex := slices.IndexFunc(cp.PlacedCards, func(c Card) bool { return c.Id == cardId })
+	foundIndex := slices.IndexFunc(cp.Cards, func(c Card) bool { return c.Id == cardId })
 	if foundIndex != -1 {
-		return &cp.PlacedCards[foundIndex]
+		return &cp.Cards[foundIndex]
 	}
 	return nil
 }
 
 func (cp *CardPlace) PickRandomCardFromCollection() *Card {
-	index := rand.Intn(len(cp.PlacedCards))
-	return &(cp.PlacedCards[index])
+	index := rand.Intn(len(cp.Cards))
+	return &(cp.Cards[index])
 }
 
 func (cp *CardPlace) CardIsAllowed(card *Card) bool {
@@ -102,5 +118,5 @@ func (cp *CardPlace) CardIsAllowed(card *Card) bool {
 }
 
 func (cp *CardPlace) CollectionLength() int {
-	return len(cp.PlacedCards)
+	return len(cp.Cards)
 }

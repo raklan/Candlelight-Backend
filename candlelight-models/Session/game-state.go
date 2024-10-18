@@ -1,21 +1,17 @@
 package Session
 
 import (
-	"candlelight-models/Actions"
 	"candlelight-models/Game"
-	"candlelight-models/Pieces"
 	"candlelight-models/Player"
-	"candlelight-models/Rules"
 	"encoding/json"
 )
 
+// Supported valued for SubmittedAction.Type. Make sure this matches up with the object you put
+// in the Turn field
 const (
-	MoveTurnType        = "MoveTurn"
-	PieceUpdateTurnType = "PieceUpdateTurn"
-	PlacementTurnType   = "PlacementTurn"
-	TakeTurnType        = "TakeTurn"
-	TradeTurnType       = "TradeTurn"
-	TransitionTurnType  = "TransitionTurn"
+	ActionType_Insertion  = "Insertion"
+	ActionType_Withdrawal = "Withdrawal"
+	ActionType_Movement   = "Movement"
 )
 
 /*
@@ -30,43 +26,25 @@ type GameState struct {
 	//The name of the GameDefinition that this game tracks. Added for rejoining players to be able to see the game's name
 	GameName string `json:"gameName"`
 	//A list of the states of each Player in the game.
-	PlayerStates []PlayerState `json:"playerStates"`
+	Players []Player.Player `json:"playerStates"`
 	//The player whose turn it currently is
-	CurrentPlayer PlayerState `json:"currentPlayer"`
-	//The current Phase the Game is in
-	CurrentPhase Rules.GamePhase `json:"currentPhase"`
+	//CurrentPlayer Player.Player `json:"currentPlayer"`
 	//The pieces (and their locations) as they are currently
 	Views []Game.View `json:"views"`
 }
 
-// The State of a certain Player. Right now, it just pairs a Player object with
-// a list of actions that Player is currently allowed to take
-type PlayerState struct {
-	//The list of Actions the given Player make take at this time.
-	//Any time you go through this, you should
-	//filter it by the Constraints within the Game's Rules list
-	AllowedActions Actions.ActionSet `json:"allowedActions"`
-	//The Player for this PlayerState
-	Player Player.Player `json:"player"`
-}
-
-// A struct containing any and all objects from a PieceSet that were affected by a SubmittedAction, as well
+// A struct containing any and all Views that could have been affected by a SubmittedAction, as well
 // as those objects' new states. One of these is generated and returned any time a Client submits an action,
 // regardless of whether the action was successful.
 type Changelog struct {
-	//Decks affected, represented in their updated state
-	Decks []Pieces.Deck
-	//CardPlaces affected, represented in their updated state
-	CardPlaces []Pieces.CardPlace
-	//Orphan Decks affected, represented in their updated state
-	OrphanDecks []Pieces.Deck
+	Views []*Game.View `json:"views"`
 }
 
 // This is the way the frontend will send data to the backend during gameplay. They will
 // send one of these objects, then the Rule Engine will take it, perform any updates to the
-// internal model of the Game, then respond with a GameState
+// internal model of the Game, then respond with a Changelog
 type SubmittedAction struct {
-	//The type of Turn you want to take. Should match exactly with the name of one of the below structs (i.e. "MoveTurn", "PlacementTurn", etc)
+	//The type of Turn you want to take. Should match exactly with the name of one of the below structs (i.e. "Movement", "Insertion", etc)
 	Type string `json:"type"`
 	//The actual turn object. Should have all the fields within the struct that you're wanting
 	Turn json.RawMessage `json:"turn"`
@@ -74,85 +52,46 @@ type SubmittedAction struct {
 	Player Player.Player `json:"player"`
 }
 
-// A Move is defined as some piece moving from one place (in play) to another. For example, in Chess, you might
-// take a Move turn to move one of your pieces.
-type MoveTurn struct {
-	//The Id of the Action you're trying to submit. This should be directly copied from the list of allowed actions for this player given in the GameState's PlayerState
-	ActionId string `json:"actionId"`
-	//The Id of the Piece to Move
-	PieceId string `json:"pieceId"`
-	//The place to which the Piece identified by [PieceId] should move TO
-	TargetId string `json:"targetId"`
+// An Insertion is defined as a Player inserting an Orphan into a Card Collection, whether that's a Deck or CardPlace
+type Insertion struct {
+	//The Id of the Card being inserted
+	InsertCard string `json:"insertCard"`
+	//The Id of the View which [InsertCard] is an Orphan of before the Insertion
+	FromView string `json:"fromView"`
+	//The Id of the Collection which [InsertCard] is to be inserted into
+	ToCollection string `json:"toCollection"`
+	//The Id of the View to which [ToCollection] belongs (and which [InsertCart] will belong to after the Insertion)
+	InView string `json:"inView"`
 }
 
-// A PieceUpdate writes a new set of Tags to the target piece. This might be used for something like Uno to change the
-// suit of the deck after a wild card is played
-type PieceUpdateTurn struct {
-	//The Id of the Action you're trying to submit. This should be directly copied from the list of allowed actions for this player given in the GameState's PlayerState
-	ActionId string `json:"actionId"`
-	//The target GamePiece to which the updates should be applied
-	TargetPieceId string `json:"pieceId"`
-	//The new set of Tags to give to the GamePiece identified by [TargetPieceId]. ALL EXISTING TAGS WILL BE OVERWRITTEN BY THE GIVEN TAGS
-	NewTags map[string]string `json:"newTags"`
+// A Movement is defined as a Player moving an Orphan from one position to another, optionally between Views
+type Movement struct {
+	//The Id of the card being moved
+	CardId string `json:"cardId"`
+	//The View that [CardId] belongs to before moving
+	FromView string `json:"fromView"`
+	//The View that [CardId] is moving into. Can be the same as [FromView] if desired
+	ToView string `json:"toView"`
+	//The new X position that should be assigned to [CardId]
+	AtX float32 `json:"toX"`
+	//The new Y position that should be assigned to [CardId]
+	AtY float32 `json:"toY"`
 }
 
-// A placement is defined as a player moving a Piece from their hand to a Target, somewhere on the board. For example, in Uno, you might
-// take a PlacementTurn to play a card from your hand.
-type PlacementTurn struct {
-	//The Id of the Action you're trying to submit. This should be directly copied from the list of allowed actions for this player given in the GameState's PlayerState
-	ActionId string `json:"actionId"`
-	//The Id of the Piece to play from a Player's hand. Obviously, it must be the Id of a piece they actually have in their hand
-	PieceId string `json:"pieceId"`
-	//The place the the Piece identified by [PieceId] should move to.
-	TargetId string `json:"targetId"`
-}
-
-// A Take is defined as a player taking something from the board and putting it in their hand. For example, in Uno, you might
-// take a TakeTurn to draw a card
-type TakeTurn struct {
-	//The Id of the Action you're trying to submit. This should be directly copied from the list of allowed actions for this player given in the GameState's PlayerState
-	ActionId string `json:"actionId"`
-	//The piece a Player wishes to take from the board. Leave empty if the player does not choose which piece specifically to take
-	PieceId string `json:"pieceId"`
-	//The place a Piece should be taken from. If [PieceId] is empty, a random Piece from the GamePiece identified by [TakingFromId] will be chosen.
-	// If [PieceId] is not empty, it must identify a Piece within or equal to [TakingFromId]
-	TakingFromId string `json:"takingFromId"`
-}
-
-// A Trade is defined as a change of Resources for one or more players. See the comments for a Transaction to see how this works
-type TradeTurn struct {
-	//The Id of the Action you're trying to submit. This should be directly copied from the list of allowed actions for this player given in the GameState's PlayerState
-	ActionId string `json:"actionId"`
-	//The list of all transactions for this Trade
-	Transactions []Transaction `json:"transactions"`
-}
-
-// The definition for what players get what out of a Trade. Every thing that
-// is included in this Trade should have its own Transaction. For example, if player 1 is giving
-// something to player 2, there should be one transaction for player 1 (with a negative ChangeAmount) and
-// one transaction for player 2 (with a positive ChangeAmount)
-type Transaction struct {
-	//Id of the player affected by this transaction
-	PlayerId string `json:"playerId"`
-	//Id of the Resource affected by this transaction
-	ResourceId string `json:"resourceId"`
-	//Amount to change the given resource by
-	ChangeAmount int `json:"changeAmount"`
-}
-
-// A transition is defined as the Game moving to a new GamePhase. The applications here are fairly broad and depend on the
-// defined GamePhases for the current Game
-type TransitionTurn struct {
-	//The Id of the Action you're trying to submit. This should be directly copied from the list of allowed actions for this player given in the GameState's PlayerState
-	ActionId string `json:"actionId"`
-	NewPhase string `json:"newPhase"`
-}
-
-type EndTurn struct {
+// A Withdrawal is defined as a Player moving a Card out of a Card Collection into the Orphans of a certain View
+type Withdrawal struct {
+	//The Id of the Card to Withdraw. Leave blank to be given an random card from [FromCollection]
+	WithdrawCard string `json:"withdrawCard"`
+	//The Collection a [WithdrawCard ]is to be withdrawn from.
+	FromCollection string `json:"fromCollection"`
+	//The View to which [FromCollection] belongs
+	InView string `json:"inView"`
+	//The View to which [WithdrawCard] should be moved into as an Orphan
+	ToView string `json:"toView"`
 }
 
 // One of the possible Turn objects. This is solely for backend reference, and you should not have
 // to ever think about this on the frontend
 type Turn interface {
-	Execute(gameState *GameState, player Player.Player) (Changelog, error)
+	Execute(gameState *GameState, player *Player.Player) (Changelog, error)
 }

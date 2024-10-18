@@ -36,6 +36,9 @@ func (deck *Deck) FindCardInCollection(cardId string) *Card {
 }
 
 func (deck *Deck) PickRandomCardFromCollection() *Card {
+	if len(deck.Cards) == 0 {
+		return nil
+	}
 	index := rand.Intn(len(deck.Cards))
 	return &(deck.Cards[index])
 }
@@ -94,6 +97,9 @@ func (cp *CardPlace) FindCardInCollection(cardId string) *Card {
 }
 
 func (cp *CardPlace) PickRandomCardFromCollection() *Card {
+	if len(cp.Cards) == 0 {
+		return nil
+	}
 	index := rand.Intn(len(cp.Cards))
 	return &(cp.Cards[index])
 }

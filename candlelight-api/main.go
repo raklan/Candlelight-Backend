@@ -4,33 +4,38 @@ import (
 	"candlelight-api/Accounts"
 	"candlelight-api/CreationStudio"
 	"candlelight-api/Lobby"
+	"os"
 
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"time"
 
 	"github.com/rs/cors"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
+
+const SERVER_VERSION = "v0.2.13"
 
 func main() {
 	startServer()
 }
 
 func startServer() {
-	//Go does the strangest datetime string formatting I've ever seen. You give it a specific date/time (Specifically Jan 2, 2006 3:04:05 PM GMT-7)
-	//in the format you want, and it'll match whatever the object is into that format
-	logName := fmt.Sprintf("./logs/%v.log", time.Now().Format("2006-01-02_15-04-05"))
-
 	//Log file & Server startup
+	logName := "./logs/server.log"
 	log.SetPrefix("CANDLELIGHT-API: ")
-	logfile, err := os.OpenFile(logName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatalf("Error opening log file: %v", err)
+
+	compressLogs := false
+	if os.Getenv("CANDLELIGHT_COMPRESS_LOGS") == "true" {
+		compressLogs = true
 	}
-	defer logfile.Close()
-	log.SetOutput(logfile)
+
+	log.SetOutput(&lumberjack.Logger{
+		Filename: logName,
+		MaxSize:  1,
+		MaxAge:   7,
+		Compress: compressLogs,
+	})
 
 	log.Println("Starting HTTP listener...")
 
@@ -51,6 +56,7 @@ func startServer() {
 func registerPathHandlers(mux *http.ServeMux) {
 	mux.HandleFunc("/", heartbeat)
 	mux.HandleFunc("/dummy", CreationStudio.GenerateJSON)
+	mux.HandleFunc("/version", version)
 
 	//Gamedef-related requests
 	mux.HandleFunc("/studio", CreationStudio.Studio)
@@ -71,4 +77,9 @@ func registerPathHandlers(mux *http.ServeMux) {
 func heartbeat(w http.ResponseWriter, r *http.Request) {
 	log.Println("==Heartbeat==: Returning dummy response...")
 	fmt.Fprintf(w, "Buh-dump, buh-dump")
+}
+
+func version(w http.ResponseWriter, r *http.Request) {
+	log.Printf("==Version==: Returning Server Version (%s)", SERVER_VERSION)
+	fmt.Fprint(w, SERVER_VERSION)
 }

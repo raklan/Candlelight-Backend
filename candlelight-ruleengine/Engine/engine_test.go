@@ -3,7 +3,6 @@ package Engine
 import (
 	"candlelight-models/Game"
 	"candlelight-models/Player"
-	"candlelight-models/Rules"
 	"candlelight-models/Session"
 	"testing"
 )
@@ -25,24 +24,6 @@ func TestSaveGameDefToDB(t *testing.T) {
 				Name:       "Epic Adventure",
 				Genre:      "Strategy",
 				MaxPlayers: 4,
-				Resources: []Game.GameResource{
-					{
-						Id:           "resource1",
-						Name:         "Gold",
-						Description:  "Used to buy items and upgrades",
-						InitialValue: 100,
-						MaxValue:     1000,
-						MinValue:     0,
-					},
-					{
-						Id:           "resource2",
-						Name:         "Mana",
-						Description:  "Required for casting spells",
-						InitialValue: 50,
-						MaxValue:     500,
-						MinValue:     0,
-					},
-				},
 			},
 			shouldReturnError:   false,
 			idShouldBeGenerated: false,
@@ -53,24 +34,6 @@ func TestSaveGameDefToDB(t *testing.T) {
 				Name:       "Epic Adventure",
 				Genre:      "Strategy",
 				MaxPlayers: 4,
-				Resources: []Game.GameResource{
-					{
-						Id:           "resource1",
-						Name:         "Gold",
-						Description:  "Used to buy items and upgrades",
-						InitialValue: 100,
-						MaxValue:     1000,
-						MinValue:     0,
-					},
-					{
-						Id:           "resource2",
-						Name:         "Mana",
-						Description:  "Required for casting spells",
-						InitialValue: 50,
-						MaxValue:     500,
-						MinValue:     0,
-					},
-				},
 			},
 			shouldReturnError:   false,
 			idShouldBeGenerated: true,
@@ -294,26 +257,6 @@ func saveDummyGameDef() {
 		Name:       "dummy",
 		MaxPlayers: 4,
 		Genre:      "test",
-		Resources: []Game.GameResource{
-			{
-				Id:           "1",
-				Name:         "magic",
-				MaxValue:     60,
-				MinValue:     0,
-				InitialValue: 15,
-			},
-			{
-				Id:           "2",
-				Name:         "gold",
-				MaxValue:     999,
-				MinValue:     0,
-				InitialValue: 0,
-			},
-		},
-		BeginningPhase: Rules.GamePhase{
-			Id:   "1",
-			Name: "Beginning Phase",
-		},
 	})
 }
 
@@ -323,6 +266,7 @@ func saveDummyLobby() {
 	SaveLobbyInRedis(Session.Lobby{
 		RoomCode:         DUMMY_ID,
 		GameDefinitionId: DUMMY_ID,
+		Status:           Session.LobbyStatus_AwaitingStart,
 		NumPlayers:       0,
 		MaxPlayers:       4,
 		Players:          []Player.Player{},

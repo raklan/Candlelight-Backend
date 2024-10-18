@@ -82,7 +82,7 @@ func TestHostLobby(t *testing.T) {
 				}
 
 				// Check that the received data is not empty
-				receivedData := LobbyMessage{}
+				receivedData := WebsocketMessage{}
 				if len(bytes) < 1 {
 					t.Errorf("Received no data, expected a non-empty value")
 				}
@@ -92,12 +92,16 @@ func TestHostLobby(t *testing.T) {
 					t.Errorf("error trying to unmarshal received JSON: %s", err)
 				}
 
+				lobbyInfo := LobbyInfo{}
+				encoded, _ := json.Marshal(receivedData.Data)
+				json.Unmarshal(encoded, &lobbyInfo)
+
 				//Check that we were given a PlayerId
-				if receivedData.PlayerID == "" {
+				if lobbyInfo.PlayerID == "" {
 					t.Errorf("Did not receive PlayerID")
 				}
 
-				lobby := receivedData.LobbyInfo
+				lobby := lobbyInfo.LobbyInfo
 				//Set up the Cleanup
 				defer Engine.RDB.Del(Engine.RDB.Context(), "lobby:"+lobby.RoomCode)
 				defer testRecovery(t, "lobby:"+lobby.RoomCode)
@@ -215,7 +219,7 @@ func TestJoinLobby(t *testing.T) {
 				}
 
 				// Check that the received data is not empty
-				receivedData := LobbyMessage{}
+				receivedData := WebsocketMessage{}
 				if len(bytes) < 1 {
 					t.Errorf("Received no data, expected a non-empty value")
 				}
@@ -225,12 +229,16 @@ func TestJoinLobby(t *testing.T) {
 					t.Errorf("error trying to unmarshal received JSON: %s", err)
 				}
 
+				lobbyInfo := LobbyInfo{}
+				encoded, _ := json.Marshal(receivedData.Data)
+				json.Unmarshal(encoded, &lobbyInfo)
+
 				//Check that we were given a PlayerId
-				if receivedData.PlayerID == "" {
+				if lobbyInfo.PlayerID == "" {
 					t.Errorf("Did not receive PlayerID")
 				}
 
-				lobby := receivedData.LobbyInfo
+				lobby := lobbyInfo.LobbyInfo
 
 				if lobby.RoomCode != roomCode {
 					t.Errorf("Received lobby roomcode mismatch! Expected {%s}, Actual {%s}", roomCode, lobby.RoomCode)
@@ -248,7 +256,7 @@ func TestJoinLobby(t *testing.T) {
 					return //Succeed
 				}
 			}
-			ws.ReadMessage()
+			ws.Close()
 		})
 	}
 }
@@ -324,7 +332,7 @@ func TestRejoinLobby(t *testing.T) { //TODO: Tests don't take their player out o
 			}
 
 			// Check that the received data is not empty
-			receivedData := LobbyMessage{}
+			receivedData := WebsocketMessage{}
 			if len(bytes) < 1 {
 				t.Errorf("Received no data, expected a non-empty value")
 			}
@@ -334,8 +342,12 @@ func TestRejoinLobby(t *testing.T) { //TODO: Tests don't take their player out o
 				t.Errorf("error trying to unmarshal received JSON: %s", err)
 			}
 
+			lobbyInfo := LobbyInfo{}
+			encoded, _ := json.Marshal(receivedData.Data)
+			json.Unmarshal(encoded, &lobbyInfo)
+
 			//Check that we were given a PlayerId
-			if receivedData.PlayerID == "" {
+			if lobbyInfo.PlayerID == "" {
 				t.Errorf("Did not receive PlayerID")
 			}
 
@@ -346,7 +358,7 @@ func TestRejoinLobby(t *testing.T) { //TODO: Tests don't take their player out o
 			//Now rejoin
 			server.Config.Handler = http.HandlerFunc(HandleRejoinLobby)
 			if tt.addPlayerId {
-				wsURL = "ws" + strings.TrimPrefix(server.URL, "http") + tt.rejoinQueryString + receivedData.PlayerID
+				wsURL = "ws" + strings.TrimPrefix(server.URL, "http") + tt.rejoinQueryString + lobbyInfo.PlayerID
 			} else {
 				wsURL = "ws" + strings.TrimPrefix(server.URL, "http") + tt.rejoinQueryString
 			}
@@ -366,7 +378,7 @@ func TestRejoinLobby(t *testing.T) { //TODO: Tests don't take their player out o
 				}
 
 				// Check that the received data is not empty
-				receivedData := LobbyMessage{}
+				receivedData := WebsocketMessage{}
 				if len(bytes) < 1 {
 					t.Errorf("Received no data, expected a non-empty value")
 				}
@@ -376,8 +388,12 @@ func TestRejoinLobby(t *testing.T) { //TODO: Tests don't take their player out o
 					t.Errorf("error trying to unmarshal received JSON: %s", err)
 				}
 
+				lobbyInfo := LobbyInfo{}
+				encoded, _ := json.Marshal(receivedData.Data)
+				json.Unmarshal(encoded, &lobbyInfo)
+
 				//Check that we were given a PlayerId
-				if receivedData.PlayerID == "" {
+				if lobbyInfo.PlayerID == "" {
 					t.Errorf("Did not receive PlayerID")
 				}
 			} else {
@@ -419,7 +435,7 @@ func TestLeaveGame(t *testing.T) {
 		t.Fatalf("Error trying to connect: %s", err)
 	}
 
-	lm := LobbyMessage{}
+	lm := LobbyInfo{}
 
 	_ = ws.ReadJSON(&lm)
 
@@ -462,7 +478,7 @@ func TestKickFromGame(t *testing.T) {
 		t.Fatalf("Error trying to connect: %s", err)
 	}
 
-	lm := LobbyMessage{}
+	lm := LobbyInfo{}
 
 	_ = ws.ReadJSON(&lm)
 
@@ -470,9 +486,6 @@ func TestKickFromGame(t *testing.T) {
 
 	defer testRecovery(t, "lobby:"+roomCode)
 	defer Engine.RDB.Del(Engine.RDB.Context(), "lobby:"+roomCode)
-
-	//Hack our newly created lobby into the gamesClients tracker
-	gamesClients[roomCode] = make(map[string]*websocket.Conn)
 
 	secondPlayerId := ""
 
@@ -485,7 +498,7 @@ func TestKickFromGame(t *testing.T) {
 		t.Errorf("Error trying to connect second websocket: %s", err)
 	}
 
-	secondLm := LobbyMessage{}
+	secondLm := LobbyInfo{}
 	err = secondWs.ReadJSON(&secondLm)
 
 	if err != nil {
@@ -513,6 +526,56 @@ func TestKickFromGame(t *testing.T) {
 		if len(lm.LobbyInfo.Players) != 1 {
 			t.Errorf("Number of players remaining in lobby is incorrect. Got %d", len(lm.LobbyInfo.Players))
 		}
+	}
+}
+
+func TestEndGame(t *testing.T) {
+	ensureDummyGameExists()
+
+	// Create a test server using the hostLobby handler.
+	// Dummy game must be created prior to running
+	server := httptest.NewServer(http.HandlerFunc(HostLobby))
+	defer server.Close()
+
+	// Modify the URL for WebSocket usage
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "?gameId=game123&playerName=testPlayer"
+
+	// Connect to the WebSocket server
+	ws, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+
+	if err != nil {
+		t.Fatalf("Error trying to connect: %s", err)
+	}
+
+	lm := LobbyInfo{}
+
+	_ = ws.ReadJSON(&lm)
+
+	msg := struct {
+		JsonType string
+	}{
+		JsonType: "endGame",
+	}
+
+	err = ws.WriteJSON(msg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	received := WebsocketMessage{}
+
+	ws.ReadJSON(&received)
+
+	if received.Type != WebsocketMessage_Close {
+		t.Fatalf("Websocket type mismatch. Expected a close message, but got: %s", received.Type)
+	}
+
+	closeMessage := SocketClose{}
+	asJson, _ := json.Marshal(received.Data)
+	json.Unmarshal(asJson, &closeMessage)
+
+	if closeMessage.Message == "" {
+		t.Fatalf("Didn't get a close message!")
 	}
 }
 

@@ -109,7 +109,7 @@ func Test_Login(t *testing.T) {
 			expectedStatusCode: http.StatusOK,
 			submission: Accounts.User{
 				Username: "ryan",
-				Password: "pass123",
+				Password: "$2a$10$K1oWlGf89ExAes17s5mBSuPsD.FU9ixvB7Z2h0xO2yy/a2bXgOMw6",
 			},
 		},
 		{

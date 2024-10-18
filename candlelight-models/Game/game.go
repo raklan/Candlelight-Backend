@@ -1,9 +1,7 @@
 package Game
 
 import (
-	"candlelight-models/Actions"
 	"candlelight-models/Pieces"
-	"candlelight-models/Rules"
 )
 
 // The over-arching definition of a Game. Should contain everything needed for the
@@ -20,15 +18,9 @@ type Game struct {
 	//Max number of allowed players in this Game
 	MaxPlayers int `json:"maxPlayers"`
 	//Resources this Game will use
-	Resources []GameResource `json:"resources"`
+	//Resources []GameResource `json:"resources"`
 	//Views this Game will use
 	Views []View `json:"views"`
-	//Actions this Game will use
-	Actions Actions.ActionSet `json:"actions"`
-	//Phases this Game will use
-	Phases []Rules.GamePhase `json:"phases"`
-	//Which GamePhase the game should start in
-	BeginningPhase Rules.GamePhase `json:"beginningPhase"`
 }
 
 // A Resource that the Game will use/keep track of for every player

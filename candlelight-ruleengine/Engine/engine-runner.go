@@ -2,7 +2,6 @@ package Engine
 
 import (
 	"candlelight-api/LogUtil"
-	"candlelight-models/Actions"
 	"candlelight-models/Game"
 	"candlelight-models/Player"
 	"candlelight-models/Session"
@@ -256,8 +255,8 @@ func GetInitialGameState(roomCode string) (Session.GameState, error) {
 	}
 
 	//Check if the lobby is already started.
-	if lobby.GameStateId != "" {
-		err := fmt.Errorf("tried to start game, but Lobby {%s} already has a GameStateId == {%s}", lobby.RoomCode, lobby.GameStateId)
+	if lobby.Status == Session.LobbyStatus_InProgress {
+		err := fmt.Errorf("tried to start game, but Lobby {%s} has been marked as In Progress and has a GameStateId == {%s}", lobby.RoomCode, lobby.GameStateId)
 		LogError(funcLogPrefix, err)
 		return gameState, err
 	}
@@ -269,36 +268,34 @@ func GetInitialGameState(roomCode string) (Session.GameState, error) {
 	}
 
 	gameState.GameDefinitionId = gameDef.Id
-	gameState.CurrentPhase = gameDef.BeginningPhase
+	gameState.GameName = gameDef.Name
+	//gameState.CurrentPhase = gameDef.BeginningPhase
 	gameState.Views = gameDef.ViewsForPlayer(0) //Player 0 == public/table-owned
 
-	startingResources := make([]Player.PlayerResource, len(gameDef.Resources))
+	//startingResources := make([]Player.PlayerResource, len(gameDef.Resources))
 
 	//Construct starting resources for each player
-	for _, element := range gameDef.Resources {
-		startingResources = append(startingResources, Player.PlayerResource{
-			Name:         element.Name,
-			CurrentValue: element.InitialValue,
-			MaxValue:     element.MaxValue,
-		})
-	}
+	// for _, element := range gameDef.Resources {
+	// 	startingResources = append(startingResources, Player.PlayerResource{
+	// 		Name:         element.Name,
+	// 		CurrentValue: element.InitialValue,
+	// 		MaxValue:     element.MaxValue,
+	// 	})
+	// }
 
-	gameState.PlayerStates = []Session.PlayerState{}
+	gameState.Players = []Player.Player{}
 
 	for index, element := range lobby.Players {
-		gameState.PlayerStates = append(gameState.PlayerStates, Session.PlayerState{
-			AllowedActions: Actions.ActionSet{},
-			Player: Player.Player{
-				Id:        element.Id,
-				Name:      element.Name,
-				Hand:      gameDef.ViewsForPlayer(index + 1), //TODO: Need a more in-depth discussion about what to do in terms of determining starting pieces
-				Resources: slices.Clone(startingResources),
-			},
+		gameState.Players = append(gameState.Players, Player.Player{
+			Id:   element.Id,
+			Name: element.Name,
+			Hand: gameDef.ViewsForPlayer(index + 1), //TODO: Need a more in-depth discussion about what to do in terms of determining starting pieces
+			//Resources: slices.Clone(startingResources),
 		})
 	}
 
-	gameState.CurrentPlayer = gameState.PlayerStates[0] //TODO: Make a better way to determine a starting player maybe?
-	gameState.CurrentPlayer.AllowedActions = DeterminePlayerAllowedActions(&gameState, &gameDef)
+	//gameState.CurrentPlayer = gameState.PlayerStates[0] //TODO: Make a better way to determine a starting player maybe?
+	//gameState.CurrentPlayer.AllowedActions = DeterminePlayerAllowedActions(&gameState, &gameDef)
 
 	gameState, err = CacheGameStateInRedis(gameState)
 	if err != nil {
@@ -306,8 +303,9 @@ func GetInitialGameState(roomCode string) (Session.GameState, error) {
 		return gameState, err
 	}
 
-	//"Mark" the lobby as started by filling in GameStateId
+	//Mark the lobby as started and fill in GameStateId
 	lobby.GameStateId = gameState.Id
+	lobby.Status = Session.LobbyStatus_InProgress
 	_, err = SaveLobbyInRedis(lobby)
 	if err != nil {
 		LogError(funcLogPrefix, err)
@@ -317,9 +315,36 @@ func GetInitialGameState(roomCode string) (Session.GameState, error) {
 	return gameState, nil
 }
 
-func DeterminePlayerAllowedActions(gameState *Session.GameState, gameDef *Game.Game) Actions.ActionSet {
-	//TODO: Implement
-	return Actions.ActionSet{}
+func EndGame(roomCode string, playerId string) error {
+	funcLogPrefix := "==GetInitialGameState=="
+	defer LogUtil.EnsureLogPrefixIsReset()
+	LogUtil.SetLogPrefix(ModuleLogPrefix, PackageLogPrefix)
+
+	lobby, err := LoadLobbyFromRedis(roomCode)
+	if err != nil {
+		LogError(funcLogPrefix, err)
+		return err
+	}
+
+	//Make sure that A) this player is the host and therefore allowed to end the game, and B) this game isn't already ended
+
+	if lobby.Host.Id != playerId {
+		return fmt.Errorf("player trying to end game is not host of lobby")
+	}
+
+	if lobby.Status == Session.LobbyStatus_Ended {
+		return fmt.Errorf("game has already been marked as ended")
+	}
+
+	//Might want to delete the GameState?
+
+	//Mark Game as ended and resave
+	lobby.Status = Session.LobbyStatus_Ended
+
+	_, err = SaveLobbyInRedis(lobby)
+
+	//Return any error that occurred during saving, if any
+	return err
 }
 
 // Submits an Action to the GameState with id == [gameId]. Will always return some GameState, even if something goes wrong, in which case [error] will not be nil.
@@ -344,54 +369,30 @@ func SubmitAction(gameId string, action Session.SubmittedAction) (Session.Change
 	// }
 
 	switch action.Type {
-	case Session.MoveTurnType:
-		turn := Session.MoveTurn{}
+	case Session.ActionType_Insertion:
+		turn := Session.Insertion{}
 		err = json.Unmarshal(action.Turn, &turn)
 		if err != nil {
 			LogError(funcLogPrefix, err)
-			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into MoveTurn: %s", funcLogPrefix, err)
+			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into Insertion: %s", funcLogPrefix, err)
 		}
-		changelog, _ = turn.Execute(&gameState, action.Player)
-	case Session.PieceUpdateTurnType:
-		turn := Session.PieceUpdateTurn{}
+		changelog, _ = turn.Execute(&gameState, &action.Player)
+	case Session.ActionType_Withdrawal:
+		turn := Session.Withdrawal{}
 		err = json.Unmarshal(action.Turn, &turn)
 		if err != nil {
 			LogError(funcLogPrefix, err)
-			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into PieceUpdateTurn: %s", funcLogPrefix, err)
+			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into Withdrawl: %s", funcLogPrefix, err)
 		}
-		changelog, _ = turn.Execute(&gameState, action.Player)
-	case Session.PlacementTurnType:
-		turn := Session.PlacementTurn{}
+		changelog, _ = turn.Execute(&gameState, &action.Player)
+	case Session.ActionType_Movement:
+		turn := Session.Movement{}
 		err = json.Unmarshal(action.Turn, &turn)
 		if err != nil {
 			LogError(funcLogPrefix, err)
-			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into PlacementTurn: %s", funcLogPrefix, err)
+			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into Movement: %s", funcLogPrefix, err)
 		}
-		changelog, _ = turn.Execute(&gameState, action.Player)
-	case Session.TakeTurnType:
-		turn := Session.TakeTurn{}
-		err = json.Unmarshal(action.Turn, &turn)
-		if err != nil {
-			LogError(funcLogPrefix, err)
-			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into TakeTurn: %s", funcLogPrefix, err)
-		}
-		changelog, _ = turn.Execute(&gameState, action.Player)
-	case Session.TradeTurnType:
-		turn := Session.TradeTurn{}
-		err = json.Unmarshal(action.Turn, &turn)
-		if err != nil {
-			LogError(funcLogPrefix, err)
-			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into TradeTurn: %s", funcLogPrefix, err)
-		}
-		changelog, _ = turn.Execute(&gameState, action.Player)
-	case Session.TransitionTurnType:
-		turn := Session.TransitionTurn{}
-		err = json.Unmarshal(action.Turn, &turn)
-		if err != nil {
-			LogError(funcLogPrefix, err)
-			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into TransitionTurn: %s", funcLogPrefix, err)
-		}
-		changelog, _ = turn.Execute(&gameState, action.Player)
+		changelog, _ = turn.Execute(&gameState, &action.Player)
 	default:
 		return changelog, fmt.Errorf("%s Error - Submitted Action's type {%s} not recognized", funcLogPrefix, action.Type)
 	}
@@ -481,6 +482,7 @@ func CreateRoom(gameDefId string) (string, error) {
 	log.Printf("%s Creating lobby object", funcLogPrefix)
 	lobby := Session.Lobby{
 		GameDefinitionId: requestedGame.Id,
+		Status:           Session.LobbyStatus_AwaitingStart,
 		GameName:         requestedGame.Name,
 		MaxPlayers:       requestedGame.MaxPlayers,
 		NumPlayers:       0,
@@ -520,10 +522,14 @@ func JoinRoom(roomCode string, playerName string) (Session.Lobby, string, error)
 		return Session.Lobby{}, "", err
 	}
 
-	//Only allow player to join if there's room
+	//Only allow player to join if there's room & the game hasn't started yet (i.e. Status == LobbyStatus_AwaitingStart)
 	if lobby.NumPlayers >= lobby.MaxPlayers {
 		log.Printf("%s ERROR: Lobby's max player count {%d} already reached. Player cannot join!", funcLogPrefix, lobby.MaxPlayers)
 		return Session.Lobby{}, "", fmt.Errorf("ERROR: Lobby's max player count {%d} already reached", lobby.MaxPlayers)
+	}
+	if lobby.Status != Session.LobbyStatus_AwaitingStart {
+		log.Printf("%s Error: Game has already started. Player cannot join!", funcLogPrefix)
+		return Session.Lobby{}, "", fmt.Errorf("ERROR: Game has already started!")
 	}
 
 	thisPlayer := createPlayerObject(playerName)
@@ -602,9 +608,9 @@ func createPlayerObject(name string) Player.Player {
 	log.Printf("%s Creating Player object for Player name {%s}", funcLogPrefix, name)
 
 	return Player.Player{
-		Id:        GenerateId(),
-		Name:      name,
-		Hand:      []Game.View{},
-		Resources: []Player.PlayerResource{},
+		Id:   GenerateId(),
+		Name: name,
+		Hand: []Game.View{},
+		//Resources: []Player.PlayerResource{},
 	}
 }

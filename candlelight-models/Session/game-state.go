@@ -73,9 +73,9 @@ type Movement struct {
 	//The View that [CardId] is moving into. Can be the same as [FromView] if desired
 	ToView string `json:"toView"`
 	//The new X position that should be assigned to [CardId]
-	AtX float32 `json:"toX"`
+	AtX float32 `json:"atX"`
 	//The new Y position that should be assigned to [CardId]
-	AtY float32 `json:"toY"`
+	AtY float32 `json:"atY"`
 }
 
 // A Withdrawal is defined as a Player moving a Card out of a Card Collection into the Orphans of a certain View

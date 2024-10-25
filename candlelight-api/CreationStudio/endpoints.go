@@ -7,8 +7,11 @@ import (
 	"candlelight-ruleengine/Engine"
 	"encoding/json"
 	"fmt"
+	"hash/fnv"
 	"log"
+	"math/rand"
 	"net/http"
+	"slices"
 )
 
 // Routing endpoint for the Creation Studio. GET requests are used to load a certain GameDef, POST are used to save a GameDef, DELETE to delete
@@ -174,6 +177,107 @@ func GetAllGames(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func generatePickColor(id string) []float32 {
+	hasher := fnv.New32a()
+	hasher.Write([]byte(id))
+	hash := hasher.Sum32()
+	r := float32((hash & 0xFF))
+	g := float32((hash >> 8) & 0xFF)
+	b := float32((hash >> 16) & 0xFF)
+	return []float32{r, g, b, 255}
+}
+
+func generateCardArray(sharedViewId string) []Pieces.Card {
+	cards := []Pieces.Card{}
+	for _, suit := range []string{
+		"Spades", "Hearts", "Diamonds", "Clubs",
+	} {
+		aceId := Engine.GenerateId()
+		jackId := Engine.GenerateId()
+		queenId := Engine.GenerateId()
+		kingId := Engine.GenerateId()
+		ace := Pieces.Card{
+			GamePiece: Pieces.GamePiece{
+				Id:         aceId,
+				Name:       fmt.Sprintf("Ace of %s", suit),
+				Color:      []float32{1, 1, 1, 1},
+				PickColor:  generatePickColor(aceId),
+				Tags:       map[string]string{},
+				Text:       fmt.Sprintf("Ace of %s", suit),
+				Layer:      0,
+				X:          0,
+				Y:          0,
+				ParentView: sharedViewId,
+			},
+		}
+		jack := Pieces.Card{
+			GamePiece: Pieces.GamePiece{
+				Id:         jackId,
+				Name:       fmt.Sprintf("Jack of %s", suit),
+				Color:      []float32{1, 1, 1, 1},
+				PickColor:  generatePickColor(jackId),
+				Tags:       map[string]string{},
+				Text:       fmt.Sprintf("Jack of %s", suit),
+				Layer:      0,
+				X:          0,
+				Y:          0,
+				ParentView: sharedViewId,
+			},
+		}
+		queen := Pieces.Card{
+			GamePiece: Pieces.GamePiece{
+				Id:         queenId,
+				Name:       fmt.Sprintf("Queen of %s", suit),
+				Color:      []float32{1, 1, 1, 1},
+				PickColor:  generatePickColor(queenId),
+				Tags:       map[string]string{},
+				Text:       fmt.Sprintf("Queen of %s", suit),
+				Layer:      0,
+				X:          0,
+				Y:          0,
+				ParentView: sharedViewId,
+			},
+		}
+		king := Pieces.Card{
+			GamePiece: Pieces.GamePiece{
+				Id:         kingId,
+				Name:       fmt.Sprintf("King of %s", suit),
+				Color:      []float32{1, 1, 1, 1},
+				PickColor:  generatePickColor(kingId),
+				Tags:       map[string]string{},
+				Text:       fmt.Sprintf("King of %s", suit),
+				Layer:      0,
+				X:          0,
+				Y:          0,
+				ParentView: sharedViewId,
+			},
+		}
+		for x := range 9 {
+			id := Engine.GenerateId()
+			card := Pieces.Card{
+				GamePiece: Pieces.GamePiece{
+					Id:         id,
+					Name:       fmt.Sprintf("%d of %s", x+2, suit),
+					Color:      []float32{1, 1, 1, 1},
+					PickColor:  generatePickColor(id),
+					Tags:       map[string]string{},
+					Text:       fmt.Sprintf("%d of %s", x+2, suit),
+					Layer:      0,
+					X:          0,
+					Y:          0,
+					ParentView: sharedViewId,
+				},
+			}
+			cards = append(cards, card)
+		}
+		cards = append(cards, ace)
+		cards = append(cards, jack)
+		cards = append(cards, queen)
+		cards = append(cards, king)
+	}
+	return cards
+}
+
 // Generates the dummy game and inserts it into the local DB. Useful for testing
 func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 	sharedViewId := Engine.GenerateId()
@@ -181,298 +285,100 @@ func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 	player2ViewId := Engine.GenerateId()
 	player3ViewId := Engine.GenerateId()
 	player4ViewId := Engine.GenerateId()
+
+	cards := generateCardArray(sharedViewId)
+	slices.SortFunc(cards, func(a Pieces.Card, b Pieces.Card) int {
+		if rand.Intn(100)%2 == 0 {
+			return 1
+		} else {
+			return -1
+		}
+	})
+
+	//cardPlaceId := Engine.GenerateId()
+	deckId := Engine.GenerateId()
+
 	game := Game.Game{
-		Id:         "game123",
-		Name:       "HAPPY FUN GAME!!!!",
-		Genre:      "Happy and fun",
-		Author:     "Ryan",
+		Id:         "DeckOfCardsTest",
+		Name:       "Shuffled Deck of Cards",
+		Genre:      "Card",
+		Author:     "Candlelight Dev Team (Beta Release)",
 		MaxPlayers: 4,
 		Views: []Game.View{
 			{
 				Id:                sharedViewId,
 				OwnerPlayerNumber: 0,
 				Pieces: Pieces.PieceSet{
+					CardPlaces: []Pieces.CardPlace{},
 					Decks: []Pieces.Deck{
 						{
 							GamePiece: Pieces.GamePiece{
-								Id:         Engine.GenerateId(),
-								ParentView: sharedViewId,
-								Name:       "Ancient Deck",
+								Id:         deckId,
+								Name:       "Draw Deck",
+								Color:      []float32{0.5, 0.5, 0.5, 1},
+								PickColor:  generatePickColor(deckId),
 								Tags:       map[string]string{},
+								Text:       "Draw Deck",
+								Layer:      0,
+								X:          50,
+								Y:          50,
+								ParentView: sharedViewId,
 							},
-							Cards: []Pieces.Card{
-								{
-									GamePiece: Pieces.GamePiece{
-										Id:   Engine.GenerateId(),
-										Name: "Earth",
-										Tags: map[string]string{
-											"color": "#186e21",
-										},
-										ParentView: sharedViewId,
-									},
-								},
-								{
-									GamePiece: Pieces.GamePiece{
-										Id:   Engine.GenerateId(),
-										Name: "Wind",
-										Tags: map[string]string{
-											"color": "#bad9e8",
-										},
-										ParentView: sharedViewId,
-									},
-								},
-								{
-									GamePiece: Pieces.GamePiece{
-										Id:   Engine.GenerateId(),
-										Name: "Fire",
-										Tags: map[string]string{
-											"color": "#ed8f6f",
-										},
-										ParentView: sharedViewId,
-									},
-								},
-								{
-									GamePiece: Pieces.GamePiece{
-										Id:   Engine.GenerateId(),
-										Name: "Ice",
-										Tags: map[string]string{
-											"color": "#aaf7fa",
-										},
-										ParentView: sharedViewId,
-									},
-								},
-								{
-									GamePiece: Pieces.GamePiece{
-										Id:   Engine.GenerateId(),
-										Name: "Air",
-										Tags: map[string]string{
-											"color": "#d5eaeb",
-										},
-										ParentView: sharedViewId,
-									},
-								},
-								{
-									GamePiece: Pieces.GamePiece{
-										Id:   Engine.GenerateId(),
-										Name: "Thunder",
-										Tags: map[string]string{
-											"color": "#ffed91",
-										},
-										ParentView: sharedViewId,
-									},
-								},
-							},
+							Cards: cards,
 						},
+					},
+					Orphans: []Pieces.Card{
 						{
 							GamePiece: Pieces.GamePiece{
-								Id:         Engine.GenerateId(),
-								ParentView: sharedViewId,
-								Name:       "Primitive Deck",
+								Id:         "testCard",
+								Name:       "testCard",
+								Color:      []float32{0.6, 0.6, 0.6, 1},
+								PickColor:  []float32{1, 2, 3, 4},
 								Tags:       map[string]string{},
-							},
-							Cards: []Pieces.Card{
-								{
-									GamePiece: Pieces.GamePiece{
-										Id:   Engine.GenerateId(),
-										Name: "Lava",
-										Tags: map[string]string{
-											"color": "#a15d55",
-										},
-										ParentView: sharedViewId,
-									},
-								},
-								{
-									GamePiece: Pieces.GamePiece{
-										Id:   Engine.GenerateId(),
-										Name: "Plasma",
-										Tags: map[string]string{
-											"color": "#d1b4de",
-										},
-										ParentView: sharedViewId,
-									},
-								},
-								{
-									GamePiece: Pieces.GamePiece{
-										Id:   Engine.GenerateId(),
-										Name: "Ribonucleic Acid",
-										Tags: map[string]string{
-											"color": "#b4deb8",
-										},
-										ParentView: sharedViewId,
-									},
-								},
-								{
-									GamePiece: Pieces.GamePiece{
-										Id:   Engine.GenerateId(),
-										Name: "Brown",
-										Tags: map[string]string{
-											"color": "#594233",
-										},
-										ParentView: sharedViewId,
-									},
-								},
-								{
-									GamePiece: Pieces.GamePiece{
-										Id:   Engine.GenerateId(),
-										Name: "Sparks",
-										Tags: map[string]string{
-											"color": "#fce481",
-										},
-										ParentView: sharedViewId,
-									},
-								},
-								{
-									GamePiece: Pieces.GamePiece{
-										Id:   Engine.GenerateId(),
-										Name: "Storm",
-										Tags: map[string]string{
-											"color": "#c1c2de",
-										},
-										ParentView: sharedViewId,
-									},
-								},
+								Text:       "Test Card",
+								Layer:      0,
+								X:          200,
+								Y:          200,
+								ParentView: sharedViewId,
 							},
 						},
 					},
-					CardPlaces: []Pieces.CardPlace{
-						{
-							GamePiece: Pieces.GamePiece{
-								Id:         Engine.GenerateId(),
-								ParentView: sharedViewId,
-								Name:       "Prehistoric World",
-								Tags:       map[string]string{},
-							},
-							Cards: []Pieces.Card{},
-						},
-						{
-							GamePiece: Pieces.GamePiece{
-								Id:         Engine.GenerateId(),
-								ParentView: sharedViewId,
-								Name:       "Old World",
-								Tags:       map[string]string{},
-							},
-							Cards: []Pieces.Card{},
-						},
-						{
-							GamePiece: Pieces.GamePiece{
-								Id:         Engine.GenerateId(),
-								ParentView: sharedViewId,
-								Name:       "Modern World",
-								Tags:       map[string]string{},
-							},
-							Cards: []Pieces.Card{},
-						},
-						{
-							GamePiece: Pieces.GamePiece{
-								Id:         Engine.GenerateId(),
-								ParentView: sharedViewId,
-								Name:       "Space World",
-								Tags:       map[string]string{},
-							},
-							Cards: []Pieces.Card{},
-						},
-					},
-					Orphans: []Pieces.Card{},
 				},
 			},
 			{
 				Id:                player1ViewId,
 				OwnerPlayerNumber: 1,
 				Pieces: Pieces.PieceSet{
-					Decks: []Pieces.Deck{
-						{
-							GamePiece: Pieces.GamePiece{
-								Id:         Engine.GenerateId(),
-								ParentView: player1ViewId,
-							},
-							Cards: []Pieces.Card{},
-						},
-					},
-					CardPlaces: []Pieces.CardPlace{
-						{
-							GamePiece: Pieces.GamePiece{
-								Id:         Engine.GenerateId(),
-								ParentView: player1ViewId,
-							},
-							Cards: []Pieces.Card{},
-						},
-					},
-					Orphans: []Pieces.Card{},
+					Decks:      []Pieces.Deck{},
+					CardPlaces: []Pieces.CardPlace{},
+					Orphans:    []Pieces.Card{},
 				},
 			},
 			{
 				Id:                player2ViewId,
 				OwnerPlayerNumber: 2,
 				Pieces: Pieces.PieceSet{
-					Decks: []Pieces.Deck{
-						{
-							GamePiece: Pieces.GamePiece{
-								Id:         Engine.GenerateId(),
-								ParentView: player2ViewId,
-							},
-							Cards: []Pieces.Card{},
-						},
-					},
-					CardPlaces: []Pieces.CardPlace{
-						{
-							GamePiece: Pieces.GamePiece{
-								Id:         Engine.GenerateId(),
-								ParentView: player2ViewId,
-							},
-							Cards: []Pieces.Card{},
-						},
-					},
-					Orphans: []Pieces.Card{},
+					Decks:      []Pieces.Deck{},
+					CardPlaces: []Pieces.CardPlace{},
+					Orphans:    []Pieces.Card{},
 				},
 			},
 			{
 				Id:                player3ViewId,
 				OwnerPlayerNumber: 3,
 				Pieces: Pieces.PieceSet{
-					Decks: []Pieces.Deck{
-						{
-							GamePiece: Pieces.GamePiece{
-								Id:         Engine.GenerateId(),
-								ParentView: player3ViewId,
-							},
-							Cards: []Pieces.Card{},
-						},
-					},
-					CardPlaces: []Pieces.CardPlace{
-						{
-							GamePiece: Pieces.GamePiece{
-								Id:         Engine.GenerateId(),
-								ParentView: player3ViewId,
-							},
-							Cards: []Pieces.Card{},
-						},
-					},
-					Orphans: []Pieces.Card{},
+					Decks:      []Pieces.Deck{},
+					CardPlaces: []Pieces.CardPlace{},
+					Orphans:    []Pieces.Card{},
 				},
 			},
 			{
 				Id:                player4ViewId,
 				OwnerPlayerNumber: 4,
 				Pieces: Pieces.PieceSet{
-					Decks: []Pieces.Deck{
-						{
-							GamePiece: Pieces.GamePiece{
-								Id:         Engine.GenerateId(),
-								ParentView: player4ViewId,
-							},
-							Cards: []Pieces.Card{},
-						},
-					},
-					CardPlaces: []Pieces.CardPlace{
-						{
-							GamePiece: Pieces.GamePiece{
-								Id:         Engine.GenerateId(),
-								ParentView: player4ViewId,
-							},
-							Cards: []Pieces.Card{},
-						},
-					},
-					Orphans: []Pieces.Card{},
+					Decks:      []Pieces.Deck{},
+					CardPlaces: []Pieces.CardPlace{},
+					Orphans:    []Pieces.Card{},
 				},
 			},
 		},

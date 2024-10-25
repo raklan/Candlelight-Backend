@@ -299,7 +299,7 @@ func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 	deckId := Engine.GenerateId()
 
 	game := Game.Game{
-		Id:         "DeckOfCardsTest",
+		Id:         "game123",
 		Name:       "Shuffled Deck of Cards",
 		Genre:      "Card",
 		Author:     "Candlelight Dev Team (Beta Release)",

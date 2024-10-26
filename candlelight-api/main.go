@@ -14,7 +14,7 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-const SERVER_VERSION = "v0.2.15 - Oct 25, 2024"
+const SERVER_VERSION = "v0.2.27 - Oct 26, 2024"
 
 func main() {
 	startServer()

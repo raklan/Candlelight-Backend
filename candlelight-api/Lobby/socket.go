@@ -21,11 +21,6 @@ import (
 var gamesClients = make(map[string]map[string]*websocket.Conn)
 var gamesClientsMutex = sync.Mutex{}
 
-// Map of each lobby to its respective message buffer
-// Key is the lobby code, value is its ClientMessage channel
-var messageBuffers = make(map[string]chan ClientMessage)
-var messageBufferMutex = sync.Mutex{}
-
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  32768, // Setting read buffer size to 32 KB
 	WriteBufferSize: 32768, // Setting write buffer size to 32 KB
@@ -78,7 +73,7 @@ func HostLobby(w http.ResponseWriter, r *http.Request) {
 	gamesClients[lobbyCode][playerID] = conn
 	gamesClientsMutex.Unlock()
 
-	go manageLobby(lobbyCode)
+	go manageClient(lobbyCode, gamesClients[lobbyCode], playerID, conn)
 }
 
 // Given a player and Room Code, tries to join that room for the given player. If joining was successul,
@@ -210,11 +205,7 @@ func HandleRejoinLobby(w http.ResponseWriter, r *http.Request) {
 	lobby := gamesClients[lobbyCode]
 	gamesClientsMutex.Unlock()
 
-	messageBufferMutex.Lock()
-	buffer := messageBuffers[lobbyCode]
-	messageBufferMutex.Unlock()
-
-	go awaitClientMessage(lobby, playerId, conn, buffer)
+	go manageClient(lobbyCode, lobby, playerId, conn)
 }
 
 // handShake sends out the lobby info to everyone currently in the room, along with the
@@ -248,62 +239,23 @@ func handShake(lobbyCode string, newPlayerId string) {
 	}
 
 	//Last thing we need to do is start listening for messages from this player
-	messageBufferMutex.Lock()
-	buffer := messageBuffers[lobbyCode]
-	messageBufferMutex.Unlock()
-	go awaitClientMessage(lobby, newPlayerId, lobby[newPlayerId], buffer)
+	go manageClient(lobbyCode, lobby, newPlayerId, lobby[newPlayerId])
 }
 
-// Manage all clients assosciated with one lobbyCode
-func manageLobby(lobbyCode string) {
-	gamesClientsMutex.Lock()
-	lobby := gamesClients[lobbyCode]
-	gamesClientsMutex.Unlock()
+func manageClient(lobbyCode string, lobbyMap map[string]*websocket.Conn, playerId string, conn *websocket.Conn) {
+	defer socketRecovery(lobbyMap, playerId)
 
-	//A buffer for incoming messages to be placed into
-	messages := make(chan ClientMessage, len(lobby))
-
-	messageBufferMutex.Lock()
-	messageBuffers[lobbyCode] = messages
-	messageBufferMutex.Unlock()
-
-	//Set up routines to wait for client messages
-	for playerId, conn := range lobby {
-		go awaitClientMessage(lobby, playerId, conn, messages)
-	}
-
-	for {
-		select {
-		case data := <-messages:
-			log.Printf("Received message: %s", data.Message)
-			processMessage(lobbyCode, data.PlayerId, data.Message)
-			//Since the only way we got here is by one of the clients sending something (and therefore completing awaitClientMessage for that client)
-			//we need to spin off another goroutine to wait for this client's next message. However, if the connection was closed as a result of the last message,
-			//we don't want to start listening again
-			if lobby[data.PlayerId] != nil {
-				go awaitClientMessage(lobby, data.PlayerId, lobby[data.PlayerId], messages)
-			}
-		default:
-			continue
-		}
-		//TODO: Add appropriate delay or termination condition
-	}
-}
-
-func awaitClientMessage(lobby map[string]*websocket.Conn, playerId string, conn *websocket.Conn, messageBuffer chan ClientMessage) {
-	//Panic handling for when a client closes the connection on their end.
-	defer socketRecovery(lobby, playerId)
-
-	log.Printf("Starting listener for playerId %s", playerId)
+	log.Printf("Managing Connection for playerId %s and waiting for message", playerId)
 	_, msg, err := conn.ReadMessage()
 	if err != nil {
 		//Disconnect client by closing connection and removing player from lobby
 		gamesClientsMutex.Lock()
-		lobby[playerId].Close()
-		delete(lobby, playerId)
+		lobbyMap[playerId].Close()
+		delete(lobbyMap, playerId)
 		gamesClientsMutex.Unlock()
 	}
-	messageBuffer <- ClientMessage{PlayerId: playerId, Message: msg}
+
+	processMessage(lobbyCode, playerId, msg)
 }
 
 // This gets called on loop per lobby
@@ -315,7 +267,9 @@ func processMessage(roomCode string, playerId string, message []byte) {
 	}
 	json.Unmarshal(message, &msg)
 
+	gamesClientsMutex.Lock()
 	lobby := gamesClients[roomCode]
+	gamesClientsMutex.Unlock()
 
 	switch msg.JsonType {
 	case "startGame":
@@ -421,6 +375,9 @@ func processMessage(roomCode string, playerId string, message []byte) {
 	default:
 		log.Println("Unknown type sent, ignoring message recieved", msg)
 	}
+
+	//Listen for the next message from this client. Not using `go manageClient(...)` because this is already happening in a goroutine
+	manageClient(roomCode, lobby, playerId, lobby[playerId])
 }
 
 func endPlayerConnection(roomCode string, playerId string, lobby map[string]*websocket.Conn) (Session.Lobby, error) {
@@ -465,7 +422,7 @@ func closeAllConnections(lobby map[string]*websocket.Conn) {
 }
 
 func sendMessageToAllPlayers(lobby map[string]*websocket.Conn, message WebsocketMessage) {
-	log.Printf("Sending message to every player: %s", message)
+	//log.Printf("Sending message to every player: %s", message)
 
 	if message.Type == "" {
 		log.Println("WARNING: Websocket message being sent has no Type set! Frontend will likely not know how to handle the message!")
@@ -483,7 +440,7 @@ func sendMessageToAllPlayers(lobby map[string]*websocket.Conn, message Websocket
 // Defer this function whenever you try to read from a socket. If ReadMessage panics, this will kick in. Note: This must be set up (deferred) **BEFORE** calling ReadMessage
 func socketRecovery(lobby map[string]*websocket.Conn, playerId string) {
 	if r := recover(); r != nil {
-		log.Printf("Something went wrong trying to read from the connection of Player: {%s} -- %s", playerId, r)
+		log.Printf("Something went wrong trying to read from the connection of Player, likely due to an unexpected closing of the Websocket connection: {%s} -- %s", playerId, r)
 		//Disconnect client by closing connection and removing player from lobby
 		gamesClientsMutex.Lock()
 		//lobby[playerId].Close() Assume the socket is already closed if we're here

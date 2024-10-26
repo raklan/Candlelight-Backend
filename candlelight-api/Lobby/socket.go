@@ -409,7 +409,7 @@ func endPlayerConnection(roomCode string, playerId string, room map[string]*webs
 func cleanUpRoom(room map[string]*websocket.Conn, roomCode string) {
 	gameOverMessage := WebsocketMessage{
 		Type: WebsocketMessage_GameOver,
-		Data: struct{}{}, //Maybe put the final GameState here?
+		Data: GameOver{}, //Maybe put the final GameState here?
 	}
 	closeMessage := WebsocketMessage{
 		Type: WebsocketMessage_Close,

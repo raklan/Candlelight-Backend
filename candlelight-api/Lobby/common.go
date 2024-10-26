@@ -7,6 +7,7 @@ const (
 	WebsocketMessage_Changelog = "Changelog"
 	WebsocketMessage_Close     = "Close"
 	WebsocketMessage_Error     = "Error"
+	WebsocketMessage_GameOver  = "GameOver"
 	WebsocketMessage_GameState = "GameState"
 	WebsocketMessage_LobbyInfo = "LobbyInfo"
 )
@@ -36,4 +37,7 @@ type SocketError struct {
 // If a connection is about to be closed by the server, it will send a SocketClose, followed by immediately closing the connection
 type SocketClose struct {
 	Message string `json:"message"`
+}
+
+type GameOver struct {
 }

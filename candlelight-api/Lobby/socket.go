@@ -374,6 +374,19 @@ func processMessage(roomCode string, playerId string, message []byte) {
 		}
 
 		sendMessageToAllPlayers(room, WebsocketMessage{Type: WebsocketMessage_LobbyInfo, Data: LobbyInfo{PlayerID: "", LobbyInfo: updatedLobby}})
+	case "disconnect":
+		conn := room[playerId]
+		msg := WebsocketMessage{
+			Type: WebsocketMessage_Close,
+			Data: SocketClose{
+				Message: "Request acknowledged, closing connection",
+			},
+		}
+
+		conn.WriteJSON(msg)
+		conn.Close()
+		delete(room, playerId)
+		return //Return so we don't go back into manageClient
 	default:
 		log.Println("Unknown type sent, ignoring message recieved", msg)
 	}

@@ -163,30 +163,10 @@ func HandleRejoinLobby(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println("Upgrade finished. Checking status of lobby to give accurate first message...")
+	log.Println("Upgrade finished. Checking status of lobby to give accurate first message(s)...")
 
-	//Check if game is started. If so, send the GameState instead of the lobby
-	if lobbyInfo.Status == Session.LobbyStatus_InProgress {
-		log.Println("Game has started. Sending GameState")
-		gameState, err := Engine.GetCachedGameStateFromRedis(lobbyInfo.GameStateId)
-		if err != nil {
-			conn.WriteJSON(WebsocketMessage{
-				Type: WebsocketMessage_Error,
-				Data: SocketError{Message: err.Error()},
-			})
-		}
-		conn.WriteJSON(WebsocketMessage{Type: WebsocketMessage_GameState, Data: gameState})
-	} else if lobbyInfo.Status == Session.LobbyStatus_AwaitingStart {
-		log.Println("Game has not started yet. Sending LobbyInfo")
-		msg := WebsocketMessage{
-			Type: WebsocketMessage_LobbyInfo,
-			Data: LobbyInfo{
-				PlayerID:  playerId,
-				LobbyInfo: lobbyInfo,
-			},
-		}
-		conn.WriteJSON(msg)
-	} else { //I don't love how I handle this case, upgrading the socket only to immediately close it feels bad
+	//If the game has ended, indicate as such and close connection
+	if lobbyInfo.Status == Session.LobbyStatus_Ended {
 		log.Println("Game has already ended! Player cannot join!")
 		msg := WebsocketMessage{
 			Type: WebsocketMessage_Error,
@@ -199,7 +179,30 @@ func HandleRejoinLobby(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Player {%s} has been given first message. Beginning to track connection for further communication...", playerId)
+	//Send LobbyInfo
+	msg := WebsocketMessage{
+		Type: WebsocketMessage_LobbyInfo,
+		Data: LobbyInfo{
+			PlayerID:  playerId,
+			LobbyInfo: lobbyInfo,
+		},
+	}
+	conn.WriteJSON(msg)
+
+	//If the game has started, send a GameState
+	if lobbyInfo.Status == Session.LobbyStatus_InProgress {
+		log.Println("Game has been marked as 'In Progress' - Sending GameState...")
+		gameState, err := Engine.GetCachedGameStateFromRedis(lobbyInfo.GameStateId)
+		if err != nil {
+			conn.WriteJSON(WebsocketMessage{
+				Type: WebsocketMessage_Error,
+				Data: SocketError{Message: err.Error()},
+			})
+		}
+		conn.WriteJSON(WebsocketMessage{Type: WebsocketMessage_GameState, Data: gameState})
+	}
+
+	log.Printf("Player {%s} has been given first message(s). Beginning to track connection for further communication...", playerId)
 
 	//Store the connection, give the connection its own goroutine, and begin listening for more messages
 	gamesClientsMutex.Lock()

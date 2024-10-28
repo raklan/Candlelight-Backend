@@ -401,6 +401,14 @@ func SubmitAction(gameId string, action Session.SubmittedAction) (Session.Change
 			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into Movement: %s", funcLogPrefix, err)
 		}
 		changelog, _ = turn.Execute(&gameState, action.PlayerId)
+	case Session.ActionType_EndTurn:
+		turn := Session.EndTurn{}
+		err = json.Unmarshal(action.Turn, &turn)
+		if err != nil {
+			LogError(funcLogPrefix, err)
+			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into EndTurn: %s", funcLogPrefix, err)
+		}
+		changelog, _ = turn.Execute(&gameState, action.PlayerId)
 	default:
 		return changelog, fmt.Errorf("%s Error - Submitted Action's type {%s} not recognized", funcLogPrefix, action.Type)
 	}

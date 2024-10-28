@@ -6,6 +6,7 @@ import (
 	"candlelight-models/Player"
 	"candlelight-models/Session"
 	"slices"
+	"time"
 
 	"context"
 	"encoding/json"
@@ -192,7 +193,8 @@ func CacheGameStateInRedis(gameState Session.GameState) (Session.GameState, erro
 	}
 
 	key := "gameState:" + id
-	err = RDB.Set(ctx, key, asJson, 0).Err()
+	expiry, _ := time.ParseDuration("168h")
+	err = RDB.Set(ctx, key, asJson, expiry).Err()
 	if err != nil {
 		LogError(funcLogPrefix, err)
 		return gameState, err
@@ -420,7 +422,8 @@ func SaveLobbyInRedis(lobby Session.Lobby) (Session.Lobby, error) {
 	}
 
 	key := "lobby:" + lobby.RoomCode
-	err = RDB.Set(ctx, key, asJson, 0).Err()
+	expiry, _ := time.ParseDuration("168h")
+	err = RDB.Set(ctx, key, asJson, expiry).Err()
 	if err != nil {
 		LogError(funcLogPrefix, err)
 		return Session.Lobby{}, err

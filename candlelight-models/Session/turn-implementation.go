@@ -8,11 +8,11 @@ import (
 	"slices"
 )
 
-func (ins Insertion) Execute(gameState *GameState, player *Player.Player) (Changelog, error) {
+func (ins Insertion) Execute(gameState *GameState, playerId string) (Changelog, error) {
 	changelog := Changelog{}
 	var err error = nil
 
-	playerToUse := findPlayerInGameState(player.Id, gameState)
+	playerToUse := findPlayerInGameState(playerId, gameState)
 	if playerToUse == nil {
 		return changelog, fmt.Errorf("could not find player in gamestate")
 	}
@@ -61,13 +61,13 @@ func (ins Insertion) Execute(gameState *GameState, player *Player.Player) (Chang
 	return changelog, nil
 }
 
-func (with Withdrawal) Execute(gameState *GameState, player *Player.Player) (Changelog, error) {
+func (with Withdrawal) Execute(gameState *GameState, playerId string) (Changelog, error) {
 	changelog := Changelog{}
 	var err error = nil
 
 	//IMPORTANT: DO ALL ERROR-CHECKING BEFORE CHANGING THE GAMESTATE
 
-	playerToUse := findPlayerInGameState(player.Id, gameState)
+	playerToUse := findPlayerInGameState(playerId, gameState)
 	if playerToUse == nil {
 		return changelog, fmt.Errorf("could not find player in gamestate")
 	}
@@ -120,11 +120,11 @@ func (with Withdrawal) Execute(gameState *GameState, player *Player.Player) (Cha
 	return changelog, nil
 }
 
-func (move Movement) Execute(gameState *GameState, player *Player.Player) (Changelog, error) {
+func (move Movement) Execute(gameState *GameState, playerId string) (Changelog, error) {
 	changelog := Changelog{}
 	var err error = nil
 
-	playerToUse := findPlayerInGameState(player.Id, gameState)
+	playerToUse := findPlayerInGameState(playerId, gameState)
 	if playerToUse == nil {
 		return changelog, fmt.Errorf("could not find player in gamestate")
 	}

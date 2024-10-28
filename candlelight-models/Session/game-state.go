@@ -48,8 +48,8 @@ type SubmittedAction struct {
 	Type string `json:"type"`
 	//The actual turn object. Should have all the fields within the struct that you're wanting
 	Turn json.RawMessage `json:"turn"`
-	//The player who is trying to submit this action
-	Player Player.Player `json:"player"`
+	//ID of the player who is trying to submit this action
+	PlayerId string `json:"playerId"`
 }
 
 // An Insertion is defined as a Player inserting an Orphan into a Card Collection, whether that's a Deck or CardPlace

@@ -123,7 +123,7 @@ func TestInsertion_Execute(t *testing.T) {
 				Players: []Player.Player{me},
 			}
 
-			changelog, err := tt.Insertion.Execute(&gameState, &me)
+			changelog, err := tt.Insertion.Execute(&gameState, me.Id)
 
 			//Check if we got an error when we shouldn't have, and vice versa
 			if tt.ShouldReturnError != (err != nil) {
@@ -279,7 +279,7 @@ func TestWithdrawl_Execute(t *testing.T) {
 				Players: []Player.Player{me},
 			}
 
-			changelog, err := tt.Withdrawl.Execute(&gameState, &me)
+			changelog, err := tt.Withdrawl.Execute(&gameState, me.Id)
 
 			//Check if we got an error when we shouldn't have, and vice versa
 			if tt.ShouldReturnError != (err != nil) {
@@ -417,7 +417,7 @@ func TestMovement_Execute(t *testing.T) {
 				},
 			}
 
-			changelog, err := tt.Movement.Execute(&gameState, &me)
+			changelog, err := tt.Movement.Execute(&gameState, me.Id)
 
 			//Check if we got an error when we shouldn't have, and vice versa
 			if tt.ShouldReturnError != (err != nil) {

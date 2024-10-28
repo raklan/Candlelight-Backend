@@ -301,6 +301,9 @@ func processMessage(roomCode string, playerId string, message []byte) {
 			log.Fatal("error decoding submitAction: {}", err, playerId)
 		}
 
+		//Supply PlayerId with the Id of the player belonging to this connection
+		action.Action.PlayerId = playerId
+
 		changelog, err := Engine.SubmitAction(action.GameId, action.Action)
 		if err != nil {
 			log.Fatalf("error with submitAction: {%s}", err)

@@ -566,8 +566,16 @@ func TestEndGame(t *testing.T) {
 
 	ws.ReadJSON(&received)
 
+	if received.Type != WebsocketMessage_GameOver {
+		t.Fatalf("Websocket type mismatch. Expected a GameOver message, but got: %s", received.Type)
+	}
+
+	//Next, we should immediately get a Close Message
+
+	ws.ReadJSON(&received)
+
 	if received.Type != WebsocketMessage_Close {
-		t.Fatalf("Websocket type mismatch. Expected a close message, but got: %s", received.Type)
+		t.Fatalf("Websocket type mismatch. Expected a Close message, but got: %s", received.Type)
 	}
 
 	closeMessage := SocketClose{}

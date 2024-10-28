@@ -2,18 +2,12 @@ package Lobby
 
 import "candlelight-models/Session"
 
-// A message that is awaiting processing after being sent from a client. The client's raw message is put into [Message], while [PlayerId] is provided
-// by the receiving function, detailing which player this message came from
-type ClientMessage struct {
-	PlayerId string
-	Message  []byte
-}
-
 // The different types of messages the server might send to a client connected via websocket.
 const (
 	WebsocketMessage_Changelog = "Changelog"
 	WebsocketMessage_Close     = "Close"
 	WebsocketMessage_Error     = "Error"
+	WebsocketMessage_GameOver  = "GameOver"
 	WebsocketMessage_GameState = "GameState"
 	WebsocketMessage_LobbyInfo = "LobbyInfo"
 )
@@ -43,4 +37,7 @@ type SocketError struct {
 // If a connection is about to be closed by the server, it will send a SocketClose, followed by immediately closing the connection
 type SocketClose struct {
 	Message string `json:"message"`
+}
+
+type GameOver struct {
 }

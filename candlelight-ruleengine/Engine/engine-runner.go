@@ -271,7 +271,7 @@ func GetInitialGameState(roomCode string) (Session.GameState, error) {
 
 	gameState.GameDefinitionId = gameDef.Id
 	gameState.GameName = gameDef.Name
-	//gameState.CurrentPhase = gameDef.BeginningPhase
+	gameState.ShowOtherPlayerDetails = gameDef.ShowOtherPlayerDetails
 	gameState.Views = gameDef.ViewsForPlayer(0) //Player 0 == public/table-owned
 
 	//startingResources := make([]Player.PlayerResource, len(gameDef.Resources))
@@ -318,7 +318,7 @@ func GetInitialGameState(roomCode string) (Session.GameState, error) {
 }
 
 func EndGame(roomCode string, playerId string) error {
-	funcLogPrefix := "==GetInitialGameState=="
+	funcLogPrefix := "==EndGame=="
 	defer LogUtil.EnsureLogPrefixIsReset()
 	LogUtil.SetLogPrefix(ModuleLogPrefix, PackageLogPrefix)
 
@@ -337,8 +337,6 @@ func EndGame(roomCode string, playerId string) error {
 	if lobby.Status == Session.LobbyStatus_Ended {
 		return fmt.Errorf("game has already been marked as ended")
 	}
-
-	//Might want to delete the GameState?
 
 	//Mark Game as ended and resave
 	lobby.Status = Session.LobbyStatus_Ended

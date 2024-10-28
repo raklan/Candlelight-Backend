@@ -17,6 +17,8 @@ type Game struct {
 	Author string `json:"author"`
 	//Max number of allowed players in this Game
 	MaxPlayers int `json:"maxPlayers"`
+	//Whether players should be able to see details about other players such as how many cards are in their hands
+	ShowOtherPlayerDetails bool `json:"showOtherPlayerDetails"`
 	//Resources this Game will use
 	//Resources []GameResource `json:"resources"`
 	//Views this Game will use

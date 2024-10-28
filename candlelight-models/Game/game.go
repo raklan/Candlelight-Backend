@@ -17,8 +17,8 @@ type Game struct {
 	Author string `json:"author"`
 	//Max number of allowed players in this Game
 	MaxPlayers int `json:"maxPlayers"`
-	//Whether players should be able to see details about other players such as how many cards are in their hands
-	ShowOtherPlayerDetails bool `json:"showOtherPlayerDetails"`
+	//Set of Rules Candlelight should use while running this Game. See GameRules struct
+	Rules GameRules `json:"rules"`
 	//Resources this Game will use
 	//Resources []GameResource `json:"resources"`
 	//Views this Game will use
@@ -39,6 +39,13 @@ type GameResource struct {
 	MaxValue int `json:"maxValue"`
 	//Minimum allowed value for a Player to have
 	MinValue int `json:"minValue"`
+}
+
+type GameRules struct {
+	//Whether players should be able to see details about other players such as how many cards are in their hands
+	ShowOtherPlayerDetails bool `json:"showOtherPlayerDetails"`
+	//Whether the RuleEngine should make use of (and enforce) Player turns, including disallowing actions from anyone whose turn it is not
+	EnforceTurnOrder bool `json:"enforceTurnOrder"`
 }
 
 // A collection of Pieces to display to a player.

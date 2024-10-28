@@ -4,6 +4,7 @@ import (
 	"candlelight-models/Game"
 	"candlelight-models/Pieces"
 	"candlelight-models/Player"
+	"slices"
 	"testing"
 )
 
@@ -448,6 +449,111 @@ func TestMovement_Execute(t *testing.T) {
 					if tt.CardEndsInFirstView && !cardInView("card", view) {
 						t.Fatalf("First View in Changelog should have card, but doesn't")
 					}
+				}
+			}
+		})
+	}
+}
+
+func TestEndTurn_Execute(t *testing.T) {
+
+	var tests = []struct {
+		name              string
+		currentPlayer     string
+		nextPlayer        string
+		ShouldReturnError bool
+	}{
+		{
+			name:              "Player 1, Unspecified Next Player",
+			currentPlayer:     "player1",
+			nextPlayer:        "",
+			ShouldReturnError: false,
+		},
+		{
+			name:              "Player 1, Next Player Player 3",
+			currentPlayer:     "player1",
+			nextPlayer:        "player3",
+			ShouldReturnError: false,
+		},
+		{
+			name:              "Player 4, Unspecified Next Player",
+			currentPlayer:     "player4",
+			nextPlayer:        "",
+			ShouldReturnError: false,
+		},
+		{
+			name:              "Player 4, Next Player Player 3",
+			currentPlayer:     "player4",
+			nextPlayer:        "player3",
+			ShouldReturnError: false,
+		},
+		{
+			name:              "Invalid Current Player",
+			currentPlayer:     "invalid",
+			nextPlayer:        "",
+			ShouldReturnError: true,
+		},
+		{
+			name:              "Invalid Next Player",
+			currentPlayer:     "player1",
+			nextPlayer:        "invalid",
+			ShouldReturnError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			player1 := Player.Player{
+				Id: "player1",
+			}
+
+			player2 := Player.Player{
+				Id: "player2",
+			}
+
+			player3 := Player.Player{
+				Id: "player3",
+			}
+
+			player4 := Player.Player{
+				Id: "player4",
+			}
+
+			gameState := GameState{
+				Players:       []Player.Player{player1, player2, player3, player4},
+				CurrentPlayer: tt.currentPlayer,
+			}
+
+			endTurn := EndTurn{
+				NextPlayer: tt.nextPlayer,
+			}
+
+			changelog, err := endTurn.Execute(&gameState, tt.currentPlayer)
+
+			//Check if we got an error when we shouldn't have, and vice versa
+			if tt.ShouldReturnError != (err != nil) {
+				t.Fatalf("ERROR in returned error value. Expected error: %t, err == %s", tt.ShouldReturnError, err)
+			}
+
+			if tt.ShouldReturnError {
+				return
+			}
+
+			if tt.nextPlayer != "" {
+				if changelog.CurrentPlayer != tt.nextPlayer {
+					t.Fatalf("Error in changelog.CurrentPlayer. Expected: %s, Got %s", tt.nextPlayer, changelog.CurrentPlayer)
+				}
+			} else {
+				indexOfCurrentPlayer := slices.IndexFunc(gameState.Players, func(p Player.Player) bool { return p.Id == tt.currentPlayer })
+				indexOfNextPlayer := slices.IndexFunc(gameState.Players, func(p Player.Player) bool { return p.Id == changelog.CurrentPlayer })
+
+				expectedNextIndex := indexOfCurrentPlayer + 1
+				if expectedNextIndex >= len(gameState.Players) {
+					expectedNextIndex -= len(gameState.Players)
+				}
+
+				if indexOfNextPlayer != expectedNextIndex {
+					t.Fatalf("Error in expected next player. Expected to get index %d, got index %d", expectedNextIndex, indexOfNextPlayer)
 				}
 			}
 		})

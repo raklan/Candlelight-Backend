@@ -12,6 +12,7 @@ const (
 	ActionType_Insertion  = "Insertion"
 	ActionType_Withdrawal = "Withdrawal"
 	ActionType_Movement   = "Movement"
+	ActionType_EndTurn    = "EndTurn"
 )
 
 /*
@@ -26,10 +27,11 @@ type GameState struct {
 	//The name of the GameDefinition that this game tracks. Added for rejoining players to be able to see the game's name
 	GameName string `json:"gameName"`
 	//A list of the states of each Player in the game.
-	Players                []Player.Player `json:"players"`
-	ShowOtherPlayerDetails bool            `json:"showOtherPlayerDetails"`
-	//The player whose turn it currently is
-	//CurrentPlayer Player.Player `json:"currentPlayer"`
+	Players []Player.Player `json:"players"`
+	//Id of the Player whose turn it currently is
+	CurrentPlayer string `json:"currentPlayer"`
+	//Set of rules Candlelight should use while running this game
+	Rules Game.GameRules `json:"rules"`
 	//The pieces (and their locations) as they are currently
 	Views []Game.View `json:"views"`
 }
@@ -38,7 +40,10 @@ type GameState struct {
 // as those objects' new states. One of these is generated and returned any time a Client submits an action,
 // regardless of whether the action was successful.
 type Changelog struct {
+	//Any views that were affected by the most recent SubmittedAction, represented as their current state after applying the Action
 	Views []*Game.View `json:"views"`
+	//Id of the Player whose turn it is after applying the most recent SubmittedAction
+	CurrentPlayer string `json:"currentPlayer"`
 }
 
 // This is the way the frontend will send data to the backend during gameplay. They will
@@ -49,7 +54,7 @@ type SubmittedAction struct {
 	Type string `json:"type"`
 	//The actual turn object. Should have all the fields within the struct that you're wanting
 	Turn json.RawMessage `json:"turn"`
-	//ID of the player who is trying to submit this action
+	//ID of the player who is trying to submit this action. This is now supplied by the backend
 	PlayerId string `json:"playerId"`
 }
 
@@ -89,6 +94,12 @@ type Withdrawal struct {
 	InView string `json:"inView"`
 	//The View to which [WithdrawCard] should be moved into as an Orphan
 	ToView string `json:"toView"`
+}
+
+type EndTurn struct {
+	//Optional string specifying the ID of the player who should be given the next turn. If not specified, the turn will pass to whichever player is next in
+	//the gameState's player list, wrapping around in the event of the last player submitting an EndTurn
+	NextPlayer string `json:"nextPlayer"`
 }
 
 // One of the possible Turn objects. This is solely for backend reference, and you should not have

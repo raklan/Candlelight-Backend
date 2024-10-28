@@ -271,7 +271,7 @@ func GetInitialGameState(roomCode string) (Session.GameState, error) {
 
 	gameState.GameDefinitionId = gameDef.Id
 	gameState.GameName = gameDef.Name
-	gameState.ShowOtherPlayerDetails = gameDef.ShowOtherPlayerDetails
+	gameState.Rules = gameDef.Rules
 	gameState.Views = gameDef.ViewsForPlayer(0) //Player 0 == public/table-owned
 
 	//startingResources := make([]Player.PlayerResource, len(gameDef.Resources))
@@ -363,10 +363,18 @@ func SubmitAction(gameId string, action Session.SubmittedAction) (Session.Change
 		return changelog, err
 	}
 
+	changelog = Session.Changelog{
+		Views:         []*Game.View{},
+		CurrentPlayer: gameState.CurrentPlayer,
+	}
+
 	//Only allow the player whose turn it is to take an action
-	// if action.Player.Name != gameState.CurrentPlayer.Player.Name { TODO: Turn this back on when it's time
-	// 	return gameState, fmt.Errorf("%s Error - Submitted player {%s} does not match gameState's current player {%s}", funcLogPrefix, action.Player.Name, gameState.CurrentPlayer.Player.Name)
-	// }
+	if gameState.Rules.EnforceTurnOrder {
+		if gameState.CurrentPlayer != action.PlayerId {
+			log.Printf("Player %s has tried to submit an action when it's not their turn. (CurrentPlayer == %s) Ignoring action", action.PlayerId, gameState.CurrentPlayer)
+			return changelog, fmt.Errorf("player submitting action is not listed as CurrentPlayer")
+		}
+	}
 
 	switch action.Type {
 	case Session.ActionType_Insertion:

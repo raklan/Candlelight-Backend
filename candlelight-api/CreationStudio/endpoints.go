@@ -299,12 +299,15 @@ func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 	deckId := Engine.GenerateId()
 
 	game := Game.Game{
-		Id:                     "game123",
-		Name:                   "Shuffled Deck of Cards",
-		Genre:                  "Card",
-		Author:                 "Candlelight Dev Team (Beta Release)",
-		ShowOtherPlayerDetails: true,
-		MaxPlayers:             4,
+		Id:     "game123",
+		Name:   "Shuffled Deck of Cards",
+		Genre:  "Card",
+		Author: "Candlelight Dev Team (Beta Release)",
+		Rules: Game.GameRules{
+			ShowOtherPlayerDetails: true,
+			EnforceTurnOrder:       true,
+		},
+		MaxPlayers: 4,
 		Views: []Game.View{
 			{
 				Id:                sharedViewId,

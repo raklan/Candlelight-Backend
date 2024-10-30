@@ -296,8 +296,7 @@ func GetInitialGameState(roomCode string) (Session.GameState, error) {
 		})
 	}
 
-	//gameState.CurrentPlayer = gameState.PlayerStates[0] //TODO: Make a better way to determine a starting player maybe?
-	//gameState.CurrentPlayer.AllowedActions = DeterminePlayerAllowedActions(&gameState, &gameDef)
+	gameState.CurrentPlayer = gameState.Players[0].Id //TODO: Make a better way to determine a starting player maybe?
 
 	gameState, err = CacheGameStateInRedis(gameState)
 	if err != nil {

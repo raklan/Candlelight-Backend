@@ -8,11 +8,13 @@ import (
 	"slices"
 )
 
-func (ins Insertion) Execute(gameState *GameState, player *Player.Player) (Changelog, error) {
-	changelog := Changelog{}
+func (ins Insertion) Execute(gameState *GameState, playerId string) (Changelog, error) {
+	changelog := Changelog{
+		CurrentPlayer: gameState.CurrentPlayer,
+	}
 	var err error = nil
 
-	playerToUse := findPlayerInGameState(player.Id, gameState)
+	playerToUse := findPlayerInGameState(playerId, gameState)
 	if playerToUse == nil {
 		return changelog, fmt.Errorf("could not find player in gamestate")
 	}
@@ -61,13 +63,15 @@ func (ins Insertion) Execute(gameState *GameState, player *Player.Player) (Chang
 	return changelog, nil
 }
 
-func (with Withdrawal) Execute(gameState *GameState, player *Player.Player) (Changelog, error) {
-	changelog := Changelog{}
+func (with Withdrawal) Execute(gameState *GameState, playerId string) (Changelog, error) {
+	changelog := Changelog{
+		CurrentPlayer: gameState.CurrentPlayer,
+	}
 	var err error = nil
 
 	//IMPORTANT: DO ALL ERROR-CHECKING BEFORE CHANGING THE GAMESTATE
 
-	playerToUse := findPlayerInGameState(player.Id, gameState)
+	playerToUse := findPlayerInGameState(playerId, gameState)
 	if playerToUse == nil {
 		return changelog, fmt.Errorf("could not find player in gamestate")
 	}
@@ -120,11 +124,13 @@ func (with Withdrawal) Execute(gameState *GameState, player *Player.Player) (Cha
 	return changelog, nil
 }
 
-func (move Movement) Execute(gameState *GameState, player *Player.Player) (Changelog, error) {
-	changelog := Changelog{}
+func (move Movement) Execute(gameState *GameState, playerId string) (Changelog, error) {
+	changelog := Changelog{
+		CurrentPlayer: gameState.CurrentPlayer,
+	}
 	var err error = nil
 
-	playerToUse := findPlayerInGameState(player.Id, gameState)
+	playerToUse := findPlayerInGameState(playerId, gameState)
 	if playerToUse == nil {
 		return changelog, fmt.Errorf("could not find player in gamestate")
 	}
@@ -162,6 +168,43 @@ func (move Movement) Execute(gameState *GameState, player *Player.Player) (Chang
 	takingFromView.Pieces.Orphans = slices.DeleteFunc(takingFromView.Pieces.Orphans, func(c Pieces.Card) bool { return c.Id == pieceToMove.Id })
 	intoView.Pieces.Orphans = append(intoView.Pieces.Orphans, copy)
 
+	return changelog, nil
+}
+
+func (et EndTurn) Execute(gameState *GameState, playerId string) (Changelog, error) {
+	changelog := Changelog{
+		CurrentPlayer: gameState.CurrentPlayer,
+	}
+
+	//Get index of player whose turn it is
+	currentPlayerIndex := slices.IndexFunc(gameState.Players, func(p Player.Player) bool { return p.Id == gameState.CurrentPlayer })
+
+	if currentPlayerIndex < 0 {
+		return changelog, fmt.Errorf("could not find current player in gameState.Players")
+	}
+
+	nextPlayerIndex := currentPlayerIndex //Default to not changing anything if something goes wrong
+	if et.NextPlayer != "" {
+		nextPlayerIndex = slices.IndexFunc(gameState.Players, func(p Player.Player) bool { return p.Id == et.NextPlayer })
+
+		if nextPlayerIndex < 0 {
+			return changelog, fmt.Errorf("could not find player to give turn to")
+		}
+	} else {
+		//Get ID of next player (wrap if necessary)
+		nextPlayerIndex = currentPlayerIndex + 1
+		if nextPlayerIndex >= len(gameState.Players) {
+			nextPlayerIndex -= len(gameState.Players)
+		}
+	}
+
+	nextPlayerId := gameState.Players[nextPlayerIndex].Id
+
+	//Update gameState and changelog
+	gameState.CurrentPlayer = nextPlayerId
+	changelog.CurrentPlayer = nextPlayerId
+
+	//return
 	return changelog, nil
 }
 

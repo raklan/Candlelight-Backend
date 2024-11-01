@@ -271,7 +271,7 @@ func GetInitialGameState(roomCode string) (Session.GameState, error) {
 
 	gameState.GameDefinitionId = gameDef.Id
 	gameState.GameName = gameDef.Name
-	//gameState.CurrentPhase = gameDef.BeginningPhase
+	gameState.Rules = gameDef.Rules
 	gameState.Views = gameDef.ViewsForPlayer(0) //Player 0 == public/table-owned
 
 	//startingResources := make([]Player.PlayerResource, len(gameDef.Resources))
@@ -296,8 +296,7 @@ func GetInitialGameState(roomCode string) (Session.GameState, error) {
 		})
 	}
 
-	//gameState.CurrentPlayer = gameState.PlayerStates[0] //TODO: Make a better way to determine a starting player maybe?
-	//gameState.CurrentPlayer.AllowedActions = DeterminePlayerAllowedActions(&gameState, &gameDef)
+	gameState.CurrentPlayer = gameState.Players[0].Id //TODO: Make a better way to determine a starting player maybe?
 
 	gameState, err = CacheGameStateInRedis(gameState)
 	if err != nil {
@@ -318,7 +317,7 @@ func GetInitialGameState(roomCode string) (Session.GameState, error) {
 }
 
 func EndGame(roomCode string, playerId string) error {
-	funcLogPrefix := "==GetInitialGameState=="
+	funcLogPrefix := "==EndGame=="
 	defer LogUtil.EnsureLogPrefixIsReset()
 	LogUtil.SetLogPrefix(ModuleLogPrefix, PackageLogPrefix)
 
@@ -337,8 +336,6 @@ func EndGame(roomCode string, playerId string) error {
 	if lobby.Status == Session.LobbyStatus_Ended {
 		return fmt.Errorf("game has already been marked as ended")
 	}
-
-	//Might want to delete the GameState?
 
 	//Mark Game as ended and resave
 	lobby.Status = Session.LobbyStatus_Ended
@@ -365,10 +362,18 @@ func SubmitAction(gameId string, action Session.SubmittedAction) (Session.Change
 		return changelog, err
 	}
 
+	changelog = Session.Changelog{
+		Views:         []*Game.View{},
+		CurrentPlayer: gameState.CurrentPlayer,
+	}
+
 	//Only allow the player whose turn it is to take an action
-	// if action.Player.Name != gameState.CurrentPlayer.Player.Name { TODO: Turn this back on when it's time
-	// 	return gameState, fmt.Errorf("%s Error - Submitted player {%s} does not match gameState's current player {%s}", funcLogPrefix, action.Player.Name, gameState.CurrentPlayer.Player.Name)
-	// }
+	if gameState.Rules.EnforceTurnOrder {
+		if gameState.CurrentPlayer != action.PlayerId {
+			log.Printf("Player %s has tried to submit an action when it's not their turn. (CurrentPlayer == %s) Ignoring action", action.PlayerId, gameState.CurrentPlayer)
+			return changelog, fmt.Errorf("player submitting action is not listed as CurrentPlayer")
+		}
+	}
 
 	switch action.Type {
 	case Session.ActionType_Insertion:
@@ -378,7 +383,7 @@ func SubmitAction(gameId string, action Session.SubmittedAction) (Session.Change
 			LogError(funcLogPrefix, err)
 			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into Insertion: %s", funcLogPrefix, err)
 		}
-		changelog, _ = turn.Execute(&gameState, &action.Player)
+		changelog, _ = turn.Execute(&gameState, action.PlayerId)
 	case Session.ActionType_Withdrawal:
 		turn := Session.Withdrawal{}
 		err = json.Unmarshal(action.Turn, &turn)
@@ -386,7 +391,7 @@ func SubmitAction(gameId string, action Session.SubmittedAction) (Session.Change
 			LogError(funcLogPrefix, err)
 			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into Withdrawl: %s", funcLogPrefix, err)
 		}
-		changelog, _ = turn.Execute(&gameState, &action.Player)
+		changelog, _ = turn.Execute(&gameState, action.PlayerId)
 	case Session.ActionType_Movement:
 		turn := Session.Movement{}
 		err = json.Unmarshal(action.Turn, &turn)
@@ -394,7 +399,15 @@ func SubmitAction(gameId string, action Session.SubmittedAction) (Session.Change
 			LogError(funcLogPrefix, err)
 			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into Movement: %s", funcLogPrefix, err)
 		}
-		changelog, _ = turn.Execute(&gameState, &action.Player)
+		changelog, _ = turn.Execute(&gameState, action.PlayerId)
+	case Session.ActionType_EndTurn:
+		turn := Session.EndTurn{}
+		err = json.Unmarshal(action.Turn, &turn)
+		if err != nil {
+			LogError(funcLogPrefix, err)
+			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into EndTurn: %s", funcLogPrefix, err)
+		}
+		changelog, _ = turn.Execute(&gameState, action.PlayerId)
 	default:
 		return changelog, fmt.Errorf("%s Error - Submitted Action's type {%s} not recognized", funcLogPrefix, action.Type)
 	}

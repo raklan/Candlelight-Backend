@@ -299,10 +299,14 @@ func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 	deckId := Engine.GenerateId()
 
 	game := Game.Game{
-		Id:         "game123",
-		Name:       "Shuffled Deck of Cards",
-		Genre:      "Card",
-		Author:     "Candlelight Dev Team (Beta Release)",
+		Id:     "game123",
+		Name:   "Shuffled Deck of Cards",
+		Genre:  "Card",
+		Author: "Candlelight Dev Team (Beta Release)",
+		Rules: Game.GameRules{
+			ShowOtherPlayerDetails: true,
+			EnforceTurnOrder:       true,
+		},
 		MaxPlayers: 4,
 		Views: []Game.View{
 			{
@@ -327,22 +331,7 @@ func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 							Cards: cards,
 						},
 					},
-					Orphans: []Pieces.Card{
-						{
-							GamePiece: Pieces.GamePiece{
-								Id:         "testCard",
-								Name:       "testCard",
-								Color:      []float32{0.6, 0.6, 0.6, 1},
-								PickColor:  []float32{1, 2, 3, 4},
-								Tags:       map[string]string{},
-								Text:       "Test Card",
-								Layer:      0,
-								X:          200,
-								Y:          200,
-								ParentView: sharedViewId,
-							},
-						},
-					},
+					Orphans: []Pieces.Card{},
 				},
 			},
 			{

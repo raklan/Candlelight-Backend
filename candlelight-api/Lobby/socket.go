@@ -298,7 +298,8 @@ func processMessage(roomCode string, playerId string, message []byte) {
 			Action Session.SubmittedAction `json:"action"`
 		}
 		if err := json.Unmarshal(msg.Data, &action); err != nil {
-			log.Fatal("error decoding submitAction: {}", err, playerId)
+			log.Printf("error decoding submitAction: {%s}", err)
+			break
 		}
 
 		//Supply PlayerId with the Id of the player belonging to this connection
@@ -306,7 +307,8 @@ func processMessage(roomCode string, playerId string, message []byte) {
 
 		changelog, err := Engine.SubmitAction(action.GameId, action.Action)
 		if err != nil {
-			log.Fatalf("error with submitAction: {%s}", err)
+			log.Printf("error with submitAction: {%s}", err)
+			break
 		}
 
 		sendMessageToAllPlayers(room, WebsocketMessage{Type: WebsocketMessage_Changelog, Data: changelog})

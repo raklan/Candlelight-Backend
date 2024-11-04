@@ -560,6 +560,92 @@ func TestEndTurn_Execute(t *testing.T) {
 	}
 }
 
+func TestCardflip_Execute(t *testing.T) {
+	var tests = []struct {
+		name              string
+		cardToFlip        string
+		inView            string
+		ShouldReturnError bool
+	}{
+		{
+			name:              "Valid Flip",
+			cardToFlip:        "card",
+			inView:            "view",
+			ShouldReturnError: false,
+		},
+		{
+			name:              "Invalid Card",
+			cardToFlip:        "invalid",
+			inView:            "view",
+			ShouldReturnError: true,
+		},
+		{
+			name:              "Invalid View",
+			cardToFlip:        "card",
+			inView:            "invalid",
+			ShouldReturnError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cardInQuestion := Pieces.Card{
+				GamePiece: Pieces.GamePiece{
+					Id: "card",
+				},
+			}
+
+			me := Player.Player{
+				Id: "me",
+			}
+
+			inView := Game.View{
+				Id: "view",
+				Pieces: Pieces.PieceSet{
+					Orphans: []Pieces.Card{cardInQuestion},
+				},
+			}
+
+			gameState := GameState{
+				Players: []Player.Player{me},
+				Views: []Game.View{
+					inView,
+				},
+			}
+
+			turn := Cardflip{
+				FlipCard: tt.cardToFlip,
+				InView:   tt.inView,
+			}
+
+			changelog, err := turn.Execute(&gameState, me.Id)
+
+			//Check if we got an error when we shouldn't have, and vice versa
+			if tt.ShouldReturnError != (err != nil) {
+				t.Fatalf("ERROR in returned error value. Expected error: %t, err == %s", tt.ShouldReturnError, err)
+			}
+
+			if tt.ShouldReturnError {
+				return
+			}
+
+			//Check if the card is flipped in the Changelog
+			changelogView := changelog.Views[0]
+
+			if changelogView.Pieces.Orphans[0].Facedown != true {
+				t.Fatalf("Card is not Facedown in Changelog!")
+			}
+
+			//Check if the card is flipped in the GameState
+			gameStateView := gameState.Views[0]
+
+			if gameStateView.Pieces.Orphans[0].Facedown != true {
+				t.Fatalf("Card is not Facedown in GameState!")
+			}
+		})
+	}
+}
+
 func cardInView(cardId string, view *Game.View) bool {
 	for _, collection := range view.Pieces.GetCollections() {
 		if collection.FindCardInCollection(cardId) != nil {

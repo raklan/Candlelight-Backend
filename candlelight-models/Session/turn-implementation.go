@@ -208,6 +208,36 @@ func (et EndTurn) Execute(gameState *GameState, playerId string) (Changelog, err
 	return changelog, nil
 }
 
+func (cf Cardflip) Execute(gameState *GameState, playerId string) (Changelog, error) {
+	changelog := Changelog{
+		CurrentPlayer: gameState.CurrentPlayer,
+	}
+
+	player := findPlayerInGameState(playerId, gameState)
+
+	if player == nil {
+		return changelog, fmt.Errorf("could not find player in GameState")
+	}
+
+	parentView := findView(gameState, player, cf.InView)
+
+	if parentView == nil {
+		return changelog, fmt.Errorf("could not find view with Id == {%s} in GameState", cf.InView)
+	}
+
+	changelog.Views = append(changelog.Views, parentView)
+
+	cardToFlip := findCardInOrphans(cf.FlipCard, parentView)
+
+	if cardToFlip == nil {
+		return changelog, fmt.Errorf("could not find card with Id == {%s} in View", cf.FlipCard)
+	}
+
+	cardToFlip.Facedown = !cardToFlip.Facedown
+
+	return changelog, nil
+}
+
 func findView(gameState *GameState, player *Player.Player, viewId string) *Game.View {
 	//Check public views, then the given player's views
 	for index, view := range gameState.Views {

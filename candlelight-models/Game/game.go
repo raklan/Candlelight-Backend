@@ -46,6 +46,8 @@ type GameRules struct {
 	ShowOtherPlayerDetails bool `json:"showOtherPlayerDetails"`
 	//Whether the RuleEngine should make use of (and enforce) Player turns, including disallowing actions from anyone whose turn it is not
 	EnforceTurnOrder bool `json:"enforceTurnOrder"`
+	//Which number playmat should be used during gameplay
+	Playmat int `json:"playmat"`
 }
 
 // A collection of Pieces to display to a player.

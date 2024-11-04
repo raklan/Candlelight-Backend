@@ -371,7 +371,7 @@ func SubmitAction(gameId string, action Session.SubmittedAction) (Session.Change
 	if gameState.Rules.EnforceTurnOrder {
 		if gameState.CurrentPlayer != action.PlayerId {
 			log.Printf("Player %s has tried to submit an action when it's not their turn. (CurrentPlayer == %s) Ignoring action", action.PlayerId, gameState.CurrentPlayer)
-			return changelog, fmt.Errorf("player submitting action is not listed as CurrentPlayer")
+			return changelog, fmt.Errorf("Your action was rejected because it's not your turn!") //Error message formatted for display directly to user as requested by Brian
 		}
 	}
 

@@ -299,6 +299,13 @@ func processMessage(roomCode string, playerId string, message []byte) {
 		}
 		if err := json.Unmarshal(msg.Data, &action); err != nil {
 			log.Printf("error decoding submitAction: {%s}", err)
+			socketError := WebsocketMessage{
+				Type: WebsocketMessage_Error,
+				Data: SocketError{
+					Message: err.Error(),
+				},
+			}
+			room[playerId].WriteJSON(socketError)
 			break
 		}
 
@@ -308,6 +315,13 @@ func processMessage(roomCode string, playerId string, message []byte) {
 		changelog, err := Engine.SubmitAction(action.GameId, action.Action)
 		if err != nil {
 			log.Printf("error with submitAction: {%s}", err)
+			socketError := WebsocketMessage{
+				Type: WebsocketMessage_Error,
+				Data: SocketError{
+					Message: err.Error(),
+				},
+			}
+			room[playerId].WriteJSON(socketError)
 			break
 		}
 

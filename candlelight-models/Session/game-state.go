@@ -13,6 +13,7 @@ const (
 	ActionType_Withdrawal = "Withdrawal"
 	ActionType_Movement   = "Movement"
 	ActionType_EndTurn    = "EndTurn"
+	ActionType_CardFlip   = "Cardflip"
 )
 
 /*
@@ -102,8 +103,15 @@ type EndTurn struct {
 	NextPlayer string `json:"nextPlayer"`
 }
 
+type Cardflip struct {
+	//Id of the card which should be flipped to its opposite side as that which is showing. This card must be an Orphan
+	FlipCard string `json:"flipCard"`
+	//Id of the View in which [FlipCard] can be found
+	InView string `json:"inView"`
+}
+
 // One of the possible Turn objects. This is solely for backend reference, and you should not have
 // to ever think about this on the frontend
 type Turn interface {
-	Execute(gameState *GameState, player *Player.Player) (Changelog, error)
+	Execute(gameState *GameState, playerId string) (Changelog, error)
 }

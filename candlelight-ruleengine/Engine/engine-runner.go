@@ -3,8 +3,10 @@ package Engine
 import (
 	"candlelight-api/LogUtil"
 	"candlelight-models/Game"
+	"candlelight-models/Pieces"
 	"candlelight-models/Player"
 	"candlelight-models/Session"
+	"candlelight-models/Sparks"
 	"slices"
 	"time"
 
@@ -298,6 +300,8 @@ func GetInitialGameState(roomCode string) (Session.GameState, error) {
 
 	gameState.CurrentPlayer = gameState.Players[0].Id //TODO: Make a better way to determine a starting player maybe?
 
+	applySparks(&gameState, gameDef.Sparks)
+
 	gameState, err = CacheGameStateInRedis(gameState)
 	if err != nil {
 		LogError(funcLogPrefix, err)
@@ -314,6 +318,37 @@ func GetInitialGameState(roomCode string) (Session.GameState, error) {
 	}
 
 	return gameState, nil
+}
+
+func applySparks(gameState *Session.GameState, sparks Sparks.Sparks) {
+	if sparks.Dealer.Enabled {
+		var deckToUse (*Pieces.Deck) = nil
+		for _, view := range gameState.Views {
+			indexOfDeck := slices.IndexFunc(view.Pieces.Decks, func(d Pieces.Deck) bool { return d.Id == sparks.Dealer.DeckToUse })
+			if indexOfDeck != -1 {
+				deckToUse = &view.Pieces.Decks[indexOfDeck]
+				break
+			} //Assumes the deck exists. Might be bad?
+		}
+
+		if deckToUse == nil {
+			panic("could not find deck to use") //TODO: Definitely bad to panic here
+		}
+
+		for _, player := range gameState.Players {
+			for _ = range sparks.Dealer.NumToDeal {
+				cardWithdraw := deckToUse.PickRandomCardFromCollection()
+				cardCopy := *cardWithdraw
+				cardCopy.ParentView = player.Hand[0].Id
+				//Just putting everything at 0,0 for now
+				cardCopy.X = 0
+				cardCopy.Y = 0
+
+				deckToUse.RemoveCardFromCollection(*cardWithdraw)
+				player.Hand[0].Pieces.Orphans = append(player.Hand[0].Pieces.Orphans, cardCopy)
+			}
+		}
+	}
 }
 
 func EndGame(roomCode string, playerId string) error {

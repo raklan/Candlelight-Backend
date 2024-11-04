@@ -2,6 +2,7 @@ package Game
 
 import (
 	"candlelight-models/Pieces"
+	"candlelight-models/Sparks"
 )
 
 // The over-arching definition of a Game. Should contain everything needed for the
@@ -19,6 +20,8 @@ type Game struct {
 	MaxPlayers int `json:"maxPlayers"`
 	//Set of Rules Candlelight should use while running this Game. See GameRules struct
 	Rules GameRules `json:"rules"`
+	//Sparks configured for this Game
+	Sparks Sparks.Sparks `json:"sparks"`
 	//Resources this Game will use
 	//Resources []GameResource `json:"resources"`
 	//Views this Game will use

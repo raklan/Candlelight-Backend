@@ -620,6 +620,40 @@ func LeaveRoom(roomCode string, playerId string) (Session.Lobby, error) {
 		return Session.Lobby{}, err
 	}
 
+	//If the game has started, we need to remove them from the GameState too
+	if saved.Status == Session.LobbyStatus_InProgress {
+		log.Println("Player is being removed from an in-progress game. Removing player from GameState...")
+		gameState, err := GetCachedGameStateFromRedis(saved.GameStateId)
+		if err != nil {
+			LogError(funcLogPrefix, err)
+		}
+
+		//If it's this player's turn, end their turn before removing them
+		if gameState.CurrentPlayer == playerId {
+			log.Println("GameState is listing Player as CurrentPlayer. Ending their turn before removal...")
+			Session.EndTurn{}.Execute(&gameState, playerId)
+		}
+
+		//Remove from Player list
+		currentPlayers := slices.Clone(gameState.Players)
+		newPlayers = []Player.Player{}
+
+		for _, player := range currentPlayers {
+			if player.Id != playerId {
+				newPlayers = append(newPlayers, player)
+			}
+		}
+
+		gameState.Players = newPlayers
+
+		log.Println("Player has been removed from GameState. (NOTE: THIS HAS ALSO REMOVED ALL PIECES IN THEIR HAND FROM THE GAME. WILL FIX LATER) Caching new GameState now...")
+		_, err = CacheGameStateInRedis(gameState)
+		if err != nil {
+			LogError(funcLogPrefix, err)
+		}
+
+	}
+
 	log.Printf("%s Left Lobby. Returning Lobby", funcLogPrefix)
 	return saved, nil
 }

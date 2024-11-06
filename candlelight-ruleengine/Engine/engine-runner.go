@@ -322,31 +322,36 @@ func GetInitialGameState(roomCode string) (Session.GameState, error) {
 
 func applySparks(gameState *Session.GameState, sparks Sparks.Sparks) {
 	if sparks.Dealer.Enabled {
-		var deckToUse (*Pieces.Deck) = nil
-		for _, view := range gameState.Views {
-			indexOfDeck := slices.IndexFunc(view.Pieces.Decks, func(d Pieces.Deck) bool { return d.Id == sparks.Dealer.DeckToUse })
-			if indexOfDeck != -1 {
-				deckToUse = &view.Pieces.Decks[indexOfDeck]
-				break
-			} //Assumes the deck exists. Might be bad?
+		applyDealer(gameState, sparks.Dealer)
+	}
+}
+
+func applyDealer(gameState *Session.GameState, dealer Sparks.Dealer) {
+	var deckToUse (*Pieces.Deck) = nil
+	for _, view := range gameState.Views {
+		indexOfDeck := slices.IndexFunc(view.Pieces.Decks, func(d Pieces.Deck) bool { return d.Id == dealer.DeckToUse })
+		if indexOfDeck != -1 {
+			deckToUse = &view.Pieces.Decks[indexOfDeck]
+			break
 		}
+	}
 
-		if deckToUse == nil {
-			panic("could not find deck to use") //TODO: Definitely bad to panic here
-		}
+	if deckToUse == nil {
+		LogError("==applySparks==", fmt.Errorf("could not find deck to deal from. Ignoring Dealer"))
+		return
+	}
 
-		for _, player := range gameState.Players {
-			for _ = range sparks.Dealer.NumToDeal {
-				cardWithdraw := deckToUse.PickRandomCardFromCollection()
-				cardCopy := *cardWithdraw
-				cardCopy.ParentView = player.Hand[0].Id
-				//Just putting everything at 0,0 for now
-				cardCopy.X = 0
-				cardCopy.Y = 0
+	for _, player := range gameState.Players {
+		for x := range dealer.NumToDeal {
+			cardWithdraw := deckToUse.PickRandomCardFromCollection()
+			cardCopy := *cardWithdraw
+			cardCopy.ParentView = player.Hand[0].Id
+			//Put X as 0, 20, 40, etc
+			cardCopy.X = float32(x * 20)
+			cardCopy.Y = 0
 
-				deckToUse.RemoveCardFromCollection(*cardWithdraw)
-				player.Hand[0].Pieces.Orphans = append(player.Hand[0].Pieces.Orphans, cardCopy)
-			}
+			deckToUse.RemoveCardFromCollection(*cardWithdraw)
+			player.Hand[0].Pieces.Orphans = append(player.Hand[0].Pieces.Orphans, cardCopy)
 		}
 	}
 }

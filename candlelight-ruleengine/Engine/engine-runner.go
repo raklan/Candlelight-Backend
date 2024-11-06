@@ -324,6 +324,9 @@ func applySparks(gameState *Session.GameState, sparks Sparks.Sparks) {
 	if sparks.Dealer.Enabled {
 		applyDealer(gameState, sparks.Dealer)
 	}
+	if sparks.Flipper.Enabled {
+		applyFlipper(gameState, sparks.Flipper)
+	}
 }
 
 func applyDealer(gameState *Session.GameState, dealer Sparks.Dealer) {
@@ -337,7 +340,7 @@ func applyDealer(gameState *Session.GameState, dealer Sparks.Dealer) {
 	}
 
 	if deckToUse == nil {
-		LogError("==applySparks==", fmt.Errorf("could not find deck to deal from. Ignoring Dealer"))
+		LogError("==applyDealer==", fmt.Errorf("could not find deck to deal from. Ignoring Dealer"))
 		return
 	}
 
@@ -354,6 +357,53 @@ func applyDealer(gameState *Session.GameState, dealer Sparks.Dealer) {
 			player.Hand[0].Pieces.Orphans = append(player.Hand[0].Pieces.Orphans, cardCopy)
 		}
 	}
+}
+
+func applyFlipper(gameState *Session.GameState, flipper Sparks.Flipper) {
+	var deckToUse (*Pieces.Deck) = nil
+	var cardPlaceToUse (*Pieces.CardPlace) = nil
+	foundDeck, foundCardPlace := false, false
+	indexOfDeck, indexOfCardPlace := -1, -1
+	for _, view := range gameState.Views {
+		if !foundDeck {
+			indexOfDeck = slices.IndexFunc(view.Pieces.Decks, func(d Pieces.Deck) bool { return d.Id == flipper.DeckToUse })
+		}
+		if !foundCardPlace {
+			indexOfCardPlace = slices.IndexFunc(view.Pieces.CardPlaces, func(cp Pieces.CardPlace) bool { return cp.Id == flipper.CardPlaceToUse })
+		}
+
+		if indexOfDeck != -1 {
+			foundDeck = true
+			deckToUse = &view.Pieces.Decks[indexOfDeck]
+		}
+		if indexOfCardPlace != -1 {
+			foundCardPlace = true
+			cardPlaceToUse = &view.Pieces.CardPlaces[indexOfCardPlace]
+		}
+
+		if foundDeck && foundCardPlace {
+			break
+		}
+	}
+
+	if deckToUse == nil {
+		LogError("==applyFlipper==", fmt.Errorf("could not find deck to deal from. Ignoring Flipper"))
+		return
+	}
+	if cardPlaceToUse == nil {
+		LogError("==applyFlipper==", fmt.Errorf("could not find cardplace to put cards in. Ignoring Flipper"))
+		return
+	}
+
+	for range flipper.NumToFlip {
+		cardWithdraw := deckToUse.PickRandomCardFromCollection()
+		cardCopy := *cardWithdraw
+		cardCopy.ParentView = cardPlaceToUse.ParentView
+
+		deckToUse.RemoveCardFromCollection(*cardWithdraw)
+		cardPlaceToUse.AddCardToCollection(cardCopy)
+	}
+
 }
 
 func EndGame(roomCode string, playerId string) error {

@@ -11,6 +11,10 @@ func (deck *Deck) GetId() string {
 	return deck.Id
 }
 
+func (deck *Deck) GetName() string {
+	return deck.Name
+}
+
 func (deck *Deck) GetXY() (float32, float32) {
 	return deck.X, deck.Y
 }
@@ -70,6 +74,10 @@ func (deck *Deck) CardIsAllowed(card *Card) bool {
 
 func (cp *CardPlace) GetId() string {
 	return cp.Id
+}
+
+func (cp *CardPlace) GetName() string {
+	return cp.Name
 }
 
 func (cp *CardPlace) GetXY() (float32, float32) {

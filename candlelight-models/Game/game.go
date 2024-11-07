@@ -46,8 +46,6 @@ type GameRules struct {
 	ShowOtherPlayerDetails bool `json:"showOtherPlayerDetails"`
 	//Whether the RuleEngine should make use of (and enforce) Player turns, including disallowing actions from anyone whose turn it is not
 	EnforceTurnOrder bool `json:"enforceTurnOrder"`
-	//Which number playmat should be used during gameplay
-	Playmat int `json:"playmat"`
 }
 
 // A collection of Pieces to display to a player.
@@ -57,6 +55,8 @@ type View struct {
 	//The PlayerNumber of the Owner of this view. 0 is a special, reserved number for the Game itself. Any
 	//view with OwnerPlayerNumber == 0 is public and accessible by all Players
 	OwnerPlayerNumber int `json:"ownerPlayerNumber"`
+	//Which playmat should be displayed as the background for this View
+	Playmat int `json:"playmat"`
 	//The PieceSet belonging to (and rendered within) this View
 	Pieces Pieces.PieceSet `json:"pieces"`
 }

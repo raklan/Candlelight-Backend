@@ -3,8 +3,10 @@ package Engine
 import (
 	"candlelight-api/LogUtil"
 	"candlelight-models/Game"
+	"candlelight-models/Pieces"
 	"candlelight-models/Player"
 	"candlelight-models/Session"
+	"candlelight-models/Sparks"
 	"slices"
 	"time"
 
@@ -298,6 +300,8 @@ func GetInitialGameState(roomCode string) (Session.GameState, error) {
 
 	gameState.CurrentPlayer = gameState.Players[0].Id //TODO: Make a better way to determine a starting player maybe?
 
+	applySparks(&gameState, gameDef.Sparks)
+
 	gameState, err = CacheGameStateInRedis(gameState)
 	if err != nil {
 		LogError(funcLogPrefix, err)
@@ -314,6 +318,92 @@ func GetInitialGameState(roomCode string) (Session.GameState, error) {
 	}
 
 	return gameState, nil
+}
+
+func applySparks(gameState *Session.GameState, sparks Sparks.Sparks) {
+	if sparks.Dealer.Enabled {
+		applyDealer(gameState, sparks.Dealer)
+	}
+	if sparks.Flipper.Enabled {
+		applyFlipper(gameState, sparks.Flipper)
+	}
+}
+
+func applyDealer(gameState *Session.GameState, dealer Sparks.Dealer) {
+	var deckToUse (*Pieces.Deck) = nil
+	for _, view := range gameState.Views {
+		indexOfDeck := slices.IndexFunc(view.Pieces.Decks, func(d Pieces.Deck) bool { return d.Id == dealer.DeckToUse })
+		if indexOfDeck != -1 {
+			deckToUse = &view.Pieces.Decks[indexOfDeck]
+			break
+		}
+	}
+
+	if deckToUse == nil {
+		LogError("==applyDealer==", fmt.Errorf("could not find deck to deal from. Ignoring Dealer"))
+		return
+	}
+
+	for _, player := range gameState.Players {
+		for x := range dealer.NumToDeal {
+			cardWithdraw := deckToUse.PickRandomCardFromCollection()
+			cardCopy := *cardWithdraw
+			cardCopy.ParentView = player.Hand[0].Id
+			//Put X as 0, 20, 40, etc
+			cardCopy.X = float32(x * 20)
+			cardCopy.Y = 0
+
+			deckToUse.RemoveCardFromCollection(*cardWithdraw)
+			player.Hand[0].Pieces.Orphans = append(player.Hand[0].Pieces.Orphans, cardCopy)
+		}
+	}
+}
+
+func applyFlipper(gameState *Session.GameState, flipper Sparks.Flipper) {
+	var deckToUse (*Pieces.Deck) = nil
+	var cardPlaceToUse (*Pieces.CardPlace) = nil
+	foundDeck, foundCardPlace := false, false
+	indexOfDeck, indexOfCardPlace := -1, -1
+	for _, view := range gameState.Views {
+		if !foundDeck {
+			indexOfDeck = slices.IndexFunc(view.Pieces.Decks, func(d Pieces.Deck) bool { return d.Id == flipper.DeckToUse })
+		}
+		if !foundCardPlace {
+			indexOfCardPlace = slices.IndexFunc(view.Pieces.CardPlaces, func(cp Pieces.CardPlace) bool { return cp.Id == flipper.CardPlaceToUse })
+		}
+
+		if indexOfDeck != -1 {
+			foundDeck = true
+			deckToUse = &view.Pieces.Decks[indexOfDeck]
+		}
+		if indexOfCardPlace != -1 {
+			foundCardPlace = true
+			cardPlaceToUse = &view.Pieces.CardPlaces[indexOfCardPlace]
+		}
+
+		if foundDeck && foundCardPlace {
+			break
+		}
+	}
+
+	if deckToUse == nil {
+		LogError("==applyFlipper==", fmt.Errorf("could not find deck to deal from. Ignoring Flipper"))
+		return
+	}
+	if cardPlaceToUse == nil {
+		LogError("==applyFlipper==", fmt.Errorf("could not find cardplace to put cards in. Ignoring Flipper"))
+		return
+	}
+
+	for range flipper.NumToFlip {
+		cardWithdraw := deckToUse.PickRandomCardFromCollection()
+		cardCopy := *cardWithdraw
+		cardCopy.ParentView = cardPlaceToUse.ParentView
+
+		deckToUse.RemoveCardFromCollection(*cardWithdraw)
+		cardPlaceToUse.AddCardToCollection(cardCopy)
+	}
+
 }
 
 func EndGame(roomCode string, playerId string) error {

@@ -14,6 +14,7 @@ const (
 	ActionType_Movement   = "Movement"
 	ActionType_EndTurn    = "EndTurn"
 	ActionType_CardFlip   = "Cardflip"
+	ActionType_Reshuffle  = "Reshuffle"
 )
 
 /*
@@ -110,6 +111,17 @@ type Cardflip struct {
 	FlipCard string `json:"flipCard"`
 	//Id of the View in which [FlipCard] can be found
 	InView string `json:"inView"`
+}
+
+type Reshuffle struct {
+	//Id of the CardPlace to reshuffle the cards from
+	ShuffleCardPlace string `json:"shuffleCardPlace"`
+	//Id of the View in which the CardPlace is found
+	InView string `json:"inView"`
+	//Id of the View in which the Deck is found
+	ToView string `json:"toView"`
+	//Id of the Deck to reshuffle into
+	IntoDeck string `json:"intoDeck"`
 }
 
 // One of the possible Turn objects. This is solely for backend reference, and you should not have

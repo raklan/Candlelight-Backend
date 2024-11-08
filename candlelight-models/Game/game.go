@@ -2,6 +2,7 @@ package Game
 
 import (
 	"candlelight-models/Pieces"
+	"candlelight-models/Sparks"
 )
 
 // The over-arching definition of a Game. Should contain everything needed for the
@@ -19,6 +20,8 @@ type Game struct {
 	MaxPlayers int `json:"maxPlayers"`
 	//Set of Rules Candlelight should use while running this Game. See GameRules struct
 	Rules GameRules `json:"rules"`
+	//Sparks configured for this Game
+	Sparks Sparks.Sparks `json:"sparks"`
 	//Resources this Game will use
 	//Resources []GameResource `json:"resources"`
 	//Views this Game will use
@@ -46,8 +49,6 @@ type GameRules struct {
 	ShowOtherPlayerDetails bool `json:"showOtherPlayerDetails"`
 	//Whether the RuleEngine should make use of (and enforce) Player turns, including disallowing actions from anyone whose turn it is not
 	EnforceTurnOrder bool `json:"enforceTurnOrder"`
-	//Which number playmat should be used during gameplay
-	Playmat int `json:"playmat"`
 }
 
 // A collection of Pieces to display to a player.
@@ -57,6 +58,8 @@ type View struct {
 	//The PlayerNumber of the Owner of this view. 0 is a special, reserved number for the Game itself. Any
 	//view with OwnerPlayerNumber == 0 is public and accessible by all Players
 	OwnerPlayerNumber int `json:"ownerPlayerNumber"`
+	//Which playmat should be displayed as the background for this View
+	Playmat int `json:"playmat"`
 	//The PieceSet belonging to (and rendered within) this View
 	Pieces Pieces.PieceSet `json:"pieces"`
 }

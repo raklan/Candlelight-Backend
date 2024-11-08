@@ -646,6 +646,150 @@ func TestCardflip_Execute(t *testing.T) {
 	}
 }
 
+func TestReshuffle_Execute(t *testing.T) {
+	var tests = []struct {
+		Name              string
+		Turn              Reshuffle
+		ShouldReturnError bool
+	}{
+		{
+			Name: "Valid Turn",
+			Turn: Reshuffle{
+				ShuffleCardPlace: "cardPlace",
+				InView:           "fromView",
+				ToView:           "toView",
+				IntoDeck:         "deck",
+			},
+			ShouldReturnError: false,
+		},
+		{
+			Name: "Invalid CardPlace",
+			Turn: Reshuffle{
+				ShuffleCardPlace: "invalid",
+				InView:           "fromView",
+				ToView:           "toView",
+				IntoDeck:         "deck",
+			},
+			ShouldReturnError: true,
+		},
+		{
+			Name: "Invalid FromView",
+			Turn: Reshuffle{
+				ShuffleCardPlace: "cardPlace",
+				InView:           "invalid",
+				ToView:           "toView",
+				IntoDeck:         "deck",
+			},
+			ShouldReturnError: true,
+		},
+		{
+			Name: "Invalid ToView",
+			Turn: Reshuffle{
+				ShuffleCardPlace: "cardPlace",
+				InView:           "fromView",
+				ToView:           "invalid",
+				IntoDeck:         "deck",
+			},
+			ShouldReturnError: true,
+		},
+		{
+			Name: "Invalid Deck",
+			Turn: Reshuffle{
+				ShuffleCardPlace: "cardPlace",
+				InView:           "fromView",
+				ToView:           "toView",
+				IntoDeck:         "invalid",
+			},
+			ShouldReturnError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+
+			fromView := Game.View{
+				Id: "fromView",
+				Pieces: Pieces.PieceSet{
+					CardPlaces: []Pieces.CardPlace{
+						{
+							GamePiece: Pieces.GamePiece{
+								Id: "cardPlace",
+							},
+							Cards: []Pieces.Card{
+								{
+									GamePiece: Pieces.GamePiece{Id: "card1"},
+								},
+								{
+									GamePiece: Pieces.GamePiece{Id: "card2"},
+								},
+								{
+									GamePiece: Pieces.GamePiece{Id: "card3"},
+								},
+							},
+						},
+					},
+				},
+			}
+
+			toView := Game.View{
+				Id: "toView",
+				Pieces: Pieces.PieceSet{
+					Decks: []Pieces.Deck{
+						{
+							GamePiece: Pieces.GamePiece{
+								Id: "deck",
+							},
+						},
+					},
+				},
+			}
+
+			me := Player.Player{
+				Id:   "me",
+				Hand: []Game.View{},
+			}
+
+			gameState := GameState{
+				Views:   []Game.View{fromView, toView},
+				Players: []Player.Player{me},
+			}
+
+			changelog, err := tt.Turn.Execute(&gameState, me.Id)
+
+			if tt.ShouldReturnError {
+				if err == nil {
+					t.Fatalf("ERROR in error value. Expected an error but got none")
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("ERROR in error value. Expected no error but got: %s", err)
+				}
+				//Check that the cards were moved in the Gamestate
+				sourceCardPlace_GameState := &gameState.Views[0].Pieces.CardPlaces[0]
+				destinationDeck_GameState := &gameState.Views[1].Pieces.Decks[0]
+
+				if len(sourceCardPlace_GameState.Cards) != 0 {
+					t.Fatalf("Error in # cards left in GameState's CardPlace. Expected 0, got %d", len(sourceCardPlace_GameState.Cards))
+				}
+				if len(destinationDeck_GameState.Cards) != 3 { //hard-coded value to match cards defined in gamestate above
+					t.Fatalf("Error in # cards in GameState's Deck. Expected 3, got %d", len(destinationDeck_GameState.Cards))
+				}
+
+				//Check that the cards were moved in the Changelog
+				sourceCardPlace_Changelog := &changelog.Views[0].Pieces.CardPlaces[0]
+				destinationDeck_Changelog := &changelog.Views[1].Pieces.Decks[0]
+
+				if len(sourceCardPlace_Changelog.Cards) != 0 {
+					t.Fatalf("Error in # cards left in GameState's CardPlace. Expected 0, got %d", len(sourceCardPlace_GameState.Cards))
+				}
+				if len(destinationDeck_Changelog.Cards) != 3 { //hard-coded value to match cards defined in gamestate above
+					t.Fatalf("Error in # cards in GameState's Deck. Expected 3, got %d", len(destinationDeck_GameState.Cards))
+				}
+			}
+		})
+	}
+}
+
 func cardInView(cardId string, view *Game.View) bool {
 	for _, collection := range view.Pieces.GetCollections() {
 		if collection.FindCardInCollection(cardId) != nil {

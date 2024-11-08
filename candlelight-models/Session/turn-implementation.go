@@ -299,6 +299,8 @@ func (reshuffle Reshuffle) Execute(gameState *GameState, playerId string) (Chang
 
 	transferAllCards(reshuffleCardPlace, reshuffleDeck)
 
+	changelog.MostRecentAction = fmt.Sprintf("Player '%s' reshuffled CardPlace '%s' into Deck '%s'", playerToUse.Name, reshuffleCardPlace.Name, reshuffleDeck.Name)
+
 	return changelog, nil
 }
 

@@ -120,6 +120,7 @@ func (with Withdrawal) Execute(gameState *GameState, playerId string) (Changelog
 	x, y := fromCollection.GetXY()
 	cardCopy.X = x
 	cardCopy.Y = y
+	cardCopy.Flipped = true
 
 	//Remove card from the collection it's being withdrawn from and add to the Orphans of the appropriate View
 	fromCollection.RemoveCardFromCollection(*cardToWithdraw)

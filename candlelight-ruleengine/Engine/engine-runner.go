@@ -647,11 +647,15 @@ func JoinRoom(roomCode string, playerName string) (Session.Lobby, string, error)
 	//Only allow player to join if there's room & the game hasn't started yet (i.e. Status == LobbyStatus_AwaitingStart)
 	if lobby.NumPlayers >= lobby.MaxPlayers {
 		log.Printf("%s ERROR: Lobby's max player count {%d} already reached. Player cannot join!", funcLogPrefix, lobby.MaxPlayers)
-		return Session.Lobby{}, "", fmt.Errorf("ERROR: Lobby's max player count {%d} already reached", lobby.MaxPlayers)
+		return Session.Lobby{}, "", fmt.Errorf("Lobby's max player count {%d} already reached", lobby.MaxPlayers)
 	}
 	if lobby.Status != Session.LobbyStatus_AwaitingStart {
 		log.Printf("%s Error: Game has already started. Player cannot join!", funcLogPrefix)
-		return Session.Lobby{}, "", fmt.Errorf("ERROR: Game has already started!")
+		return Session.Lobby{}, "", fmt.Errorf("Game has already started!")
+	}
+	if slices.ContainsFunc(lobby.Players, func(p Player.Player) bool { return p.Name == playerName }) {
+		log.Printf("%s Error: Player name {%s} already taken. Player cannot join!", funcLogPrefix, playerName)
+		return Session.Lobby{}, "", fmt.Errorf("Name already taken!")
 	}
 
 	thisPlayer := createPlayerObject(playerName)

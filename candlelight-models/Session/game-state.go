@@ -46,6 +46,8 @@ type Changelog struct {
 	Views []*Game.View `json:"views"`
 	//Id of the Player whose turn it is after applying the most recent SubmittedAction
 	CurrentPlayer string `json:"currentPlayer"`
+	//A description of the action that just took place. Will be empty if the most recent SubmittedAction had no effect for any reason
+	MostRecentAction string `json:"mostRecentAction"`
 }
 
 // This is the way the frontend will send data to the backend during gameplay. They will

@@ -10,7 +10,8 @@ import (
 
 func (ins Insertion) Execute(gameState *GameState, playerId string) (Changelog, error) {
 	changelog := Changelog{
-		CurrentPlayer: gameState.CurrentPlayer,
+		CurrentPlayer:    gameState.CurrentPlayer,
+		MostRecentAction: "",
 	}
 	var err error = nil
 
@@ -60,12 +61,15 @@ func (ins Insertion) Execute(gameState *GameState, playerId string) (Changelog, 
 	//Insert that card into its new collection. Because this is a pointer, it should match up to the right place
 	intoCollection.AddCardToCollection(cardCopy)
 
+	changelog.MostRecentAction = fmt.Sprintf("Player '%s' put card '%s' into collection '%s'", playerToUse.Name, cardCopy.Name, intoCollection.GetName())
+
 	return changelog, nil
 }
 
 func (with Withdrawal) Execute(gameState *GameState, playerId string) (Changelog, error) {
 	changelog := Changelog{
-		CurrentPlayer: gameState.CurrentPlayer,
+		CurrentPlayer:    gameState.CurrentPlayer,
+		MostRecentAction: "",
 	}
 	var err error = nil
 
@@ -121,12 +125,15 @@ func (with Withdrawal) Execute(gameState *GameState, playerId string) (Changelog
 	fromCollection.RemoveCardFromCollection(*cardToWithdraw)
 	intoView.Pieces.Orphans = append(intoView.Pieces.Orphans, cardCopy)
 
+	changelog.MostRecentAction = fmt.Sprintf("Player '%s' drew card '%s' from collection '%s'", playerToUse.Name, cardCopy.Name, fromCollection.GetName())
+
 	return changelog, nil
 }
 
 func (move Movement) Execute(gameState *GameState, playerId string) (Changelog, error) {
 	changelog := Changelog{
-		CurrentPlayer: gameState.CurrentPlayer,
+		CurrentPlayer:    gameState.CurrentPlayer,
+		MostRecentAction: "",
 	}
 	var err error = nil
 
@@ -168,12 +175,15 @@ func (move Movement) Execute(gameState *GameState, playerId string) (Changelog, 
 	takingFromView.Pieces.Orphans = slices.DeleteFunc(takingFromView.Pieces.Orphans, func(c Pieces.Card) bool { return c.Id == pieceToMove.Id })
 	intoView.Pieces.Orphans = append(intoView.Pieces.Orphans, copy)
 
+	changelog.MostRecentAction = fmt.Sprintf("Player '%s' moved card '%s' to (%f, %f)", playerToUse.Name, copy.Name, copy.X, copy.Y)
+
 	return changelog, nil
 }
 
 func (et EndTurn) Execute(gameState *GameState, playerId string) (Changelog, error) {
 	changelog := Changelog{
-		CurrentPlayer: gameState.CurrentPlayer,
+		CurrentPlayer:    gameState.CurrentPlayer,
+		MostRecentAction: "",
 	}
 
 	//Get index of player whose turn it is
@@ -203,6 +213,8 @@ func (et EndTurn) Execute(gameState *GameState, playerId string) (Changelog, err
 	//Update gameState and changelog
 	gameState.CurrentPlayer = nextPlayerId
 	changelog.CurrentPlayer = nextPlayerId
+
+	changelog.MostRecentAction = fmt.Sprintf("Player '%s' ended their turn. Next player is '%s'", gameState.Players[currentPlayerIndex].Name, gameState.Players[nextPlayerIndex].Name)
 
 	//return
 	return changelog, nil
@@ -234,6 +246,8 @@ func (cf Cardflip) Execute(gameState *GameState, playerId string) (Changelog, er
 	}
 
 	cardToFlip.Flipped = !cardToFlip.Flipped
+
+	changelog.MostRecentAction = fmt.Sprintf("Player '%s' flipped over card '%s'", player.Name, cardToFlip.Name)
 
 	return changelog, nil
 }
@@ -284,6 +298,8 @@ func (reshuffle Reshuffle) Execute(gameState *GameState, playerId string) (Chang
 	}
 
 	transferAllCards(reshuffleCardPlace, reshuffleDeck)
+
+	changelog.MostRecentAction = fmt.Sprintf("Player '%s' reshuffled CardPlace '%s' into Deck '%s'", playerToUse.Name, reshuffleCardPlace.Name, reshuffleDeck.Name)
 
 	return changelog, nil
 }

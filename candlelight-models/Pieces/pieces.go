@@ -78,8 +78,8 @@ type Card struct {
 	GamePiece
 	//Optional description
 	Description string `json:"description"`
-	//Whether this card is oriented facedown, and thus should not show the face side
-	Facedown bool `json:"facedown"`
+	//Whether this card is oriented faceup, and thus should show the face side
+	Flipped bool `json:"flipped"`
 }
 
 /*

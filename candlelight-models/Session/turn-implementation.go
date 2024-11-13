@@ -233,7 +233,7 @@ func (cf Cardflip) Execute(gameState *GameState, playerId string) (Changelog, er
 		return changelog, fmt.Errorf("could not find card with Id == {%s} in View", cf.FlipCard)
 	}
 
-	cardToFlip.Facedown = !cardToFlip.Facedown
+	cardToFlip.Flipped = !cardToFlip.Flipped
 
 	return changelog, nil
 }

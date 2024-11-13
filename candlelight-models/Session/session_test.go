@@ -632,14 +632,14 @@ func TestCardflip_Execute(t *testing.T) {
 			//Check if the card is flipped in the Changelog
 			changelogView := changelog.Views[0]
 
-			if changelogView.Pieces.Orphans[0].Facedown != true {
+			if changelogView.Pieces.Orphans[0].Flipped != true {
 				t.Fatalf("Card is not Facedown in Changelog!")
 			}
 
 			//Check if the card is flipped in the GameState
 			gameStateView := gameState.Views[0]
 
-			if gameStateView.Pieces.Orphans[0].Facedown != true {
+			if gameStateView.Pieces.Orphans[0].Flipped != true {
 				t.Fatalf("Card is not Facedown in GameState!")
 			}
 		})

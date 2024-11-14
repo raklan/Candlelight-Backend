@@ -22,6 +22,8 @@ type Game struct {
 	Rules GameRules `json:"rules"`
 	//Sparks configured for this Game
 	Sparks Sparks.Sparks `json:"sparks"`
+	//Text that should be shown to all players at the start of the game. Should scrub this upon starting the game
+	SplashText string `json:"splashText"`
 	//Resources this Game will use
 	//Resources []GameResource `json:"resources"`
 	//Views this Game will use

@@ -274,6 +274,7 @@ func GetInitialGameState(roomCode string) (Session.GameState, error) {
 	gameState.GameDefinitionId = gameDef.Id
 	gameState.GameName = gameDef.Name
 	gameState.Rules = gameDef.Rules
+	gameState.SplashText = gameDef.SplashText
 	gameState.Views = gameDef.ViewsForPlayer(0) //Player 0 == public/table-owned
 
 	//startingResources := make([]Player.PlayerResource, len(gameDef.Resources))

@@ -32,6 +32,8 @@ type GameState struct {
 	Players []Player.Player `json:"players"`
 	//Id of the Player whose turn it currently is
 	CurrentPlayer string `json:"currentPlayer"`
+	//Text that should be shown to all players upon joining the game. Should be scrubbed before use to prevent XSS because it is used as InnerHTML
+	SplashText string `json:"splashText"`
 	//Set of rules Candlelight should use while running this game
 	Rules Game.GameRules `json:"rules"`
 	//The pieces (and their locations) as they are currently

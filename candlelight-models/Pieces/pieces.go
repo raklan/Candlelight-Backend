@@ -78,6 +78,8 @@ type Card struct {
 	GamePiece
 	//Optional description
 	Description string `json:"description"`
+	//Whether this card is oriented facedown, and thus should not show the face side
+	Flipped bool `json:"flipped"`
 }
 
 /*
@@ -96,6 +98,7 @@ type CardPlace struct {
 //(Pointers used to ensure the methods called actually change the object, instead of a copy of it)
 type Card_Container interface {
 	GetId() string
+	GetName() string
 	GetXY() (float32, float32)
 	AddCardToCollection(cardToAdd Card)
 	CardIsAllowed(card *Card) bool

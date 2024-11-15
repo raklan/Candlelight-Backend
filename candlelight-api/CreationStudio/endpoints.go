@@ -4,6 +4,7 @@ import (
 	"candlelight-api/LogUtil"
 	"candlelight-models/Game"
 	"candlelight-models/Pieces"
+	"candlelight-models/Sparks"
 	"candlelight-ruleengine/Engine"
 	"encoding/json"
 	"fmt"
@@ -200,7 +201,7 @@ func generateCardArray(sharedViewId string) []Pieces.Card {
 			GamePiece: Pieces.GamePiece{
 				Id:         aceId,
 				Name:       fmt.Sprintf("Ace of %s", suit),
-				Color:      []float32{1, 1, 1, 1},
+				Color:      []float32{255, 255, 255, 255},
 				PickColor:  generatePickColor(aceId),
 				Tags:       map[string]string{},
 				Text:       fmt.Sprintf("Ace of %s", suit),
@@ -214,7 +215,7 @@ func generateCardArray(sharedViewId string) []Pieces.Card {
 			GamePiece: Pieces.GamePiece{
 				Id:         jackId,
 				Name:       fmt.Sprintf("Jack of %s", suit),
-				Color:      []float32{1, 1, 1, 1},
+				Color:      []float32{255, 255, 255, 255},
 				PickColor:  generatePickColor(jackId),
 				Tags:       map[string]string{},
 				Text:       fmt.Sprintf("Jack of %s", suit),
@@ -228,7 +229,7 @@ func generateCardArray(sharedViewId string) []Pieces.Card {
 			GamePiece: Pieces.GamePiece{
 				Id:         queenId,
 				Name:       fmt.Sprintf("Queen of %s", suit),
-				Color:      []float32{1, 1, 1, 1},
+				Color:      []float32{255, 255, 255, 255},
 				PickColor:  generatePickColor(queenId),
 				Tags:       map[string]string{},
 				Text:       fmt.Sprintf("Queen of %s", suit),
@@ -242,7 +243,7 @@ func generateCardArray(sharedViewId string) []Pieces.Card {
 			GamePiece: Pieces.GamePiece{
 				Id:         kingId,
 				Name:       fmt.Sprintf("King of %s", suit),
-				Color:      []float32{1, 1, 1, 1},
+				Color:      []float32{255, 255, 255, 255},
 				PickColor:  generatePickColor(kingId),
 				Tags:       map[string]string{},
 				Text:       fmt.Sprintf("King of %s", suit),
@@ -258,7 +259,7 @@ func generateCardArray(sharedViewId string) []Pieces.Card {
 				GamePiece: Pieces.GamePiece{
 					Id:         id,
 					Name:       fmt.Sprintf("%d of %s", x+2, suit),
-					Color:      []float32{1, 1, 1, 1},
+					Color:      []float32{255, 255, 255, 255},
 					PickColor:  generatePickColor(id),
 					Tags:       map[string]string{},
 					Text:       fmt.Sprintf("%d of %s", x+2, suit),
@@ -299,10 +300,21 @@ func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 	deckId := Engine.GenerateId()
 
 	game := Game.Game{
-		Id:         "game123",
-		Name:       "Shuffled Deck of Cards",
-		Genre:      "Card",
-		Author:     "Candlelight Dev Team (Beta Release)",
+		Id:     "game123",
+		Name:   "Shuffled Deck of Cards",
+		Genre:  "Card",
+		Author: "Candlelight Dev Team (Beta Release)",
+		Rules: Game.GameRules{
+			ShowOtherPlayerDetails: true,
+			EnforceTurnOrder:       true,
+		},
+		Sparks: Sparks.Sparks{
+			Dealer: Sparks.Dealer{
+				Enabled:   true,
+				NumToDeal: 5,
+				DeckToUse: deckId,
+			},
+		},
 		MaxPlayers: 4,
 		Views: []Game.View{
 			{
@@ -327,22 +339,7 @@ func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 							Cards: cards,
 						},
 					},
-					Orphans: []Pieces.Card{
-						{
-							GamePiece: Pieces.GamePiece{
-								Id:         "testCard",
-								Name:       "testCard",
-								Color:      []float32{0.6, 0.6, 0.6, 1},
-								PickColor:  []float32{1, 2, 3, 4},
-								Tags:       map[string]string{},
-								Text:       "Test Card",
-								Layer:      0,
-								X:          200,
-								Y:          200,
-								ParentView: sharedViewId,
-							},
-						},
-					},
+					Orphans: []Pieces.Card{},
 				},
 			},
 			{

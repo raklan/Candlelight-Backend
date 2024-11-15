@@ -3,9 +3,12 @@ package Engine
 import (
 	"candlelight-api/LogUtil"
 	"candlelight-models/Game"
+	"candlelight-models/Pieces"
 	"candlelight-models/Player"
 	"candlelight-models/Session"
+	"candlelight-models/Sparks"
 	"slices"
+	"time"
 
 	"context"
 	"encoding/json"
@@ -192,7 +195,8 @@ func CacheGameStateInRedis(gameState Session.GameState) (Session.GameState, erro
 	}
 
 	key := "gameState:" + id
-	err = RDB.Set(ctx, key, asJson, 0).Err()
+	expiry, _ := time.ParseDuration("168h")
+	err = RDB.Set(ctx, key, asJson, expiry).Err()
 	if err != nil {
 		LogError(funcLogPrefix, err)
 		return gameState, err
@@ -269,7 +273,8 @@ func GetInitialGameState(roomCode string) (Session.GameState, error) {
 
 	gameState.GameDefinitionId = gameDef.Id
 	gameState.GameName = gameDef.Name
-	//gameState.CurrentPhase = gameDef.BeginningPhase
+	gameState.Rules = gameDef.Rules
+	gameState.SplashText = gameDef.SplashText
 	gameState.Views = gameDef.ViewsForPlayer(0) //Player 0 == public/table-owned
 
 	//startingResources := make([]Player.PlayerResource, len(gameDef.Resources))
@@ -294,8 +299,9 @@ func GetInitialGameState(roomCode string) (Session.GameState, error) {
 		})
 	}
 
-	//gameState.CurrentPlayer = gameState.PlayerStates[0] //TODO: Make a better way to determine a starting player maybe?
-	//gameState.CurrentPlayer.AllowedActions = DeterminePlayerAllowedActions(&gameState, &gameDef)
+	gameState.CurrentPlayer = gameState.Players[0].Id //TODO: Make a better way to determine a starting player maybe?
+
+	applySparks(&gameState, gameDef.Sparks)
 
 	gameState, err = CacheGameStateInRedis(gameState)
 	if err != nil {
@@ -315,8 +321,94 @@ func GetInitialGameState(roomCode string) (Session.GameState, error) {
 	return gameState, nil
 }
 
+func applySparks(gameState *Session.GameState, sparks Sparks.Sparks) {
+	if sparks.Dealer.Enabled {
+		applyDealer(gameState, sparks.Dealer)
+	}
+	if sparks.Flipper.Enabled {
+		applyFlipper(gameState, sparks.Flipper)
+	}
+}
+
+func applyDealer(gameState *Session.GameState, dealer Sparks.Dealer) {
+	var deckToUse (*Pieces.Deck) = nil
+	for _, view := range gameState.Views {
+		indexOfDeck := slices.IndexFunc(view.Pieces.Decks, func(d Pieces.Deck) bool { return d.Id == dealer.DeckToUse })
+		if indexOfDeck != -1 {
+			deckToUse = &view.Pieces.Decks[indexOfDeck]
+			break
+		}
+	}
+
+	if deckToUse == nil {
+		LogError("==applyDealer==", fmt.Errorf("could not find deck to deal from. Ignoring Dealer"))
+		return
+	}
+
+	for _, player := range gameState.Players {
+		for x := range dealer.NumToDeal {
+			cardWithdraw := deckToUse.PickRandomCardFromCollection()
+			cardCopy := *cardWithdraw
+			cardCopy.ParentView = player.Hand[0].Id
+			//Put X as 0, 20, 40, etc
+			cardCopy.X = float32(x * 20)
+			cardCopy.Y = 0
+
+			deckToUse.RemoveCardFromCollection(*cardWithdraw)
+			player.Hand[0].Pieces.Orphans = append(player.Hand[0].Pieces.Orphans, cardCopy)
+		}
+	}
+}
+
+func applyFlipper(gameState *Session.GameState, flipper Sparks.Flipper) {
+	var deckToUse (*Pieces.Deck) = nil
+	var cardPlaceToUse (*Pieces.CardPlace) = nil
+	foundDeck, foundCardPlace := false, false
+	indexOfDeck, indexOfCardPlace := -1, -1
+	for _, view := range gameState.Views {
+		if !foundDeck {
+			indexOfDeck = slices.IndexFunc(view.Pieces.Decks, func(d Pieces.Deck) bool { return d.Id == flipper.DeckToUse })
+		}
+		if !foundCardPlace {
+			indexOfCardPlace = slices.IndexFunc(view.Pieces.CardPlaces, func(cp Pieces.CardPlace) bool { return cp.Id == flipper.CardPlaceToUse })
+		}
+
+		if indexOfDeck != -1 {
+			foundDeck = true
+			deckToUse = &view.Pieces.Decks[indexOfDeck]
+		}
+		if indexOfCardPlace != -1 {
+			foundCardPlace = true
+			cardPlaceToUse = &view.Pieces.CardPlaces[indexOfCardPlace]
+		}
+
+		if foundDeck && foundCardPlace {
+			break
+		}
+	}
+
+	if deckToUse == nil {
+		LogError("==applyFlipper==", fmt.Errorf("could not find deck to deal from. Ignoring Flipper"))
+		return
+	}
+	if cardPlaceToUse == nil {
+		LogError("==applyFlipper==", fmt.Errorf("could not find cardplace to put cards in. Ignoring Flipper"))
+		return
+	}
+
+	for range flipper.NumToFlip {
+		cardWithdraw := deckToUse.PickRandomCardFromCollection()
+		cardCopy := *cardWithdraw
+		cardCopy.ParentView = cardPlaceToUse.ParentView
+
+		deckToUse.RemoveCardFromCollection(*cardWithdraw)
+		cardPlaceToUse.AddCardToCollection(cardCopy)
+	}
+
+}
+
 func EndGame(roomCode string, playerId string) error {
-	funcLogPrefix := "==GetInitialGameState=="
+	funcLogPrefix := "==EndGame=="
 	defer LogUtil.EnsureLogPrefixIsReset()
 	LogUtil.SetLogPrefix(ModuleLogPrefix, PackageLogPrefix)
 
@@ -335,8 +427,6 @@ func EndGame(roomCode string, playerId string) error {
 	if lobby.Status == Session.LobbyStatus_Ended {
 		return fmt.Errorf("game has already been marked as ended")
 	}
-
-	//Might want to delete the GameState?
 
 	//Mark Game as ended and resave
 	lobby.Status = Session.LobbyStatus_Ended
@@ -363,10 +453,18 @@ func SubmitAction(gameId string, action Session.SubmittedAction) (Session.Change
 		return changelog, err
 	}
 
+	changelog = Session.Changelog{
+		Views:         []*Game.View{},
+		CurrentPlayer: gameState.CurrentPlayer,
+	}
+
 	//Only allow the player whose turn it is to take an action
-	// if action.Player.Name != gameState.CurrentPlayer.Player.Name { TODO: Turn this back on when it's time
-	// 	return gameState, fmt.Errorf("%s Error - Submitted player {%s} does not match gameState's current player {%s}", funcLogPrefix, action.Player.Name, gameState.CurrentPlayer.Player.Name)
-	// }
+	if gameState.Rules.EnforceTurnOrder {
+		if gameState.CurrentPlayer != action.PlayerId {
+			log.Printf("Player %s has tried to submit an action when it's not their turn. (CurrentPlayer == %s) Ignoring action", action.PlayerId, gameState.CurrentPlayer)
+			return changelog, fmt.Errorf("Your action was rejected because it's not your turn!") //Error message formatted for display directly to user as requested by Brian
+		}
+	}
 
 	switch action.Type {
 	case Session.ActionType_Insertion:
@@ -376,7 +474,7 @@ func SubmitAction(gameId string, action Session.SubmittedAction) (Session.Change
 			LogError(funcLogPrefix, err)
 			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into Insertion: %s", funcLogPrefix, err)
 		}
-		changelog, _ = turn.Execute(&gameState, &action.Player)
+		changelog, _ = turn.Execute(&gameState, action.PlayerId)
 	case Session.ActionType_Withdrawal:
 		turn := Session.Withdrawal{}
 		err = json.Unmarshal(action.Turn, &turn)
@@ -384,7 +482,7 @@ func SubmitAction(gameId string, action Session.SubmittedAction) (Session.Change
 			LogError(funcLogPrefix, err)
 			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into Withdrawl: %s", funcLogPrefix, err)
 		}
-		changelog, _ = turn.Execute(&gameState, &action.Player)
+		changelog, _ = turn.Execute(&gameState, action.PlayerId)
 	case Session.ActionType_Movement:
 		turn := Session.Movement{}
 		err = json.Unmarshal(action.Turn, &turn)
@@ -392,7 +490,31 @@ func SubmitAction(gameId string, action Session.SubmittedAction) (Session.Change
 			LogError(funcLogPrefix, err)
 			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into Movement: %s", funcLogPrefix, err)
 		}
-		changelog, _ = turn.Execute(&gameState, &action.Player)
+		changelog, _ = turn.Execute(&gameState, action.PlayerId)
+	case Session.ActionType_EndTurn:
+		turn := Session.EndTurn{}
+		err = json.Unmarshal(action.Turn, &turn)
+		if err != nil {
+			LogError(funcLogPrefix, err)
+			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into EndTurn: %s", funcLogPrefix, err)
+		}
+		changelog, _ = turn.Execute(&gameState, action.PlayerId)
+	case Session.ActionType_CardFlip:
+		turn := Session.Cardflip{}
+		err = json.Unmarshal(action.Turn, &turn)
+		if err != nil {
+			LogError(funcLogPrefix, err)
+			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into Cardflip: %s", funcLogPrefix, err)
+		}
+		changelog, _ = turn.Execute(&gameState, action.PlayerId)
+	case Session.ActionType_Reshuffle:
+		turn := Session.Reshuffle{}
+		err = json.Unmarshal(action.Turn, &turn)
+		if err != nil {
+			LogError(funcLogPrefix, err)
+			return changelog, fmt.Errorf("%s Error trying to unmarshal turn into Reshuffle: %s", funcLogPrefix, err)
+		}
+		changelog, _ = turn.Execute(&gameState, action.PlayerId)
 	default:
 		return changelog, fmt.Errorf("%s Error - Submitted Action's type {%s} not recognized", funcLogPrefix, action.Type)
 	}
@@ -420,7 +542,8 @@ func SaveLobbyInRedis(lobby Session.Lobby) (Session.Lobby, error) {
 	}
 
 	key := "lobby:" + lobby.RoomCode
-	err = RDB.Set(ctx, key, asJson, 0).Err()
+	expiry, _ := time.ParseDuration("168h")
+	err = RDB.Set(ctx, key, asJson, expiry).Err()
 	if err != nil {
 		LogError(funcLogPrefix, err)
 		return Session.Lobby{}, err
@@ -525,11 +648,15 @@ func JoinRoom(roomCode string, playerName string) (Session.Lobby, string, error)
 	//Only allow player to join if there's room & the game hasn't started yet (i.e. Status == LobbyStatus_AwaitingStart)
 	if lobby.NumPlayers >= lobby.MaxPlayers {
 		log.Printf("%s ERROR: Lobby's max player count {%d} already reached. Player cannot join!", funcLogPrefix, lobby.MaxPlayers)
-		return Session.Lobby{}, "", fmt.Errorf("ERROR: Lobby's max player count {%d} already reached", lobby.MaxPlayers)
+		return Session.Lobby{}, "", fmt.Errorf("Lobby's max player count {%d} already reached", lobby.MaxPlayers)
 	}
 	if lobby.Status != Session.LobbyStatus_AwaitingStart {
 		log.Printf("%s Error: Game has already started. Player cannot join!", funcLogPrefix)
-		return Session.Lobby{}, "", fmt.Errorf("ERROR: Game has already started!")
+		return Session.Lobby{}, "", fmt.Errorf("Game has already started!")
+	}
+	if slices.ContainsFunc(lobby.Players, func(p Player.Player) bool { return p.Name == playerName }) {
+		log.Printf("%s Error: Player name {%s} already taken. Player cannot join!", funcLogPrefix, playerName)
+		return Session.Lobby{}, "", fmt.Errorf("Name already taken!")
 	}
 
 	thisPlayer := createPlayerObject(playerName)
@@ -594,6 +721,40 @@ func LeaveRoom(roomCode string, playerId string) (Session.Lobby, error) {
 	if err != nil { //If something goes wrong, re-save and return the version without any changes
 		SaveLobbyInRedis(lobby)
 		return Session.Lobby{}, err
+	}
+
+	//If the game has started, we need to remove them from the GameState too
+	if saved.Status == Session.LobbyStatus_InProgress {
+		log.Println("Player is being removed from an in-progress game. Removing player from GameState...")
+		gameState, err := GetCachedGameStateFromRedis(saved.GameStateId)
+		if err != nil {
+			LogError(funcLogPrefix, err)
+		}
+
+		//If it's this player's turn, end their turn before removing them
+		if gameState.CurrentPlayer == playerId {
+			log.Println("GameState is listing Player as CurrentPlayer. Ending their turn before removal...")
+			Session.EndTurn{}.Execute(&gameState, playerId)
+		}
+
+		//Remove from Player list
+		currentPlayers := slices.Clone(gameState.Players)
+		newPlayers = []Player.Player{}
+
+		for _, player := range currentPlayers {
+			if player.Id != playerId {
+				newPlayers = append(newPlayers, player)
+			}
+		}
+
+		gameState.Players = newPlayers
+
+		log.Println("Player has been removed from GameState. (NOTE: THIS HAS ALSO REMOVED ALL PIECES IN THEIR HAND FROM THE GAME. WILL FIX LATER) Caching new GameState now...")
+		_, err = CacheGameStateInRedis(gameState)
+		if err != nil {
+			LogError(funcLogPrefix, err)
+		}
+
 	}
 
 	log.Printf("%s Left Lobby. Returning Lobby", funcLogPrefix)

@@ -8,11 +8,14 @@ import (
 	"slices"
 )
 
-func (ins Insertion) Execute(gameState *GameState, player *Player.Player) (Changelog, error) {
-	changelog := Changelog{}
+func (ins Insertion) Execute(gameState *GameState, playerId string) (Changelog, error) {
+	changelog := Changelog{
+		CurrentPlayer:    gameState.CurrentPlayer,
+		MostRecentAction: "",
+	}
 	var err error = nil
 
-	playerToUse := findPlayerInGameState(player.Id, gameState)
+	playerToUse := findPlayerInGameState(playerId, gameState)
 	if playerToUse == nil {
 		return changelog, fmt.Errorf("could not find player in gamestate")
 	}
@@ -58,16 +61,21 @@ func (ins Insertion) Execute(gameState *GameState, player *Player.Player) (Chang
 	//Insert that card into its new collection. Because this is a pointer, it should match up to the right place
 	intoCollection.AddCardToCollection(cardCopy)
 
+	changelog.MostRecentAction = fmt.Sprintf("Player '%s' put card '%s' into collection '%s'", playerToUse.Name, cardCopy.Name, intoCollection.GetName())
+
 	return changelog, nil
 }
 
-func (with Withdrawal) Execute(gameState *GameState, player *Player.Player) (Changelog, error) {
-	changelog := Changelog{}
+func (with Withdrawal) Execute(gameState *GameState, playerId string) (Changelog, error) {
+	changelog := Changelog{
+		CurrentPlayer:    gameState.CurrentPlayer,
+		MostRecentAction: "",
+	}
 	var err error = nil
 
 	//IMPORTANT: DO ALL ERROR-CHECKING BEFORE CHANGING THE GAMESTATE
 
-	playerToUse := findPlayerInGameState(player.Id, gameState)
+	playerToUse := findPlayerInGameState(playerId, gameState)
 	if playerToUse == nil {
 		return changelog, fmt.Errorf("could not find player in gamestate")
 	}
@@ -112,19 +120,25 @@ func (with Withdrawal) Execute(gameState *GameState, player *Player.Player) (Cha
 	x, y := fromCollection.GetXY()
 	cardCopy.X = x
 	cardCopy.Y = y
+	cardCopy.Flipped = true
 
 	//Remove card from the collection it's being withdrawn from and add to the Orphans of the appropriate View
 	fromCollection.RemoveCardFromCollection(*cardToWithdraw)
 	intoView.Pieces.Orphans = append(intoView.Pieces.Orphans, cardCopy)
 
+	changelog.MostRecentAction = fmt.Sprintf("Player '%s' drew card '%s' from collection '%s'", playerToUse.Name, cardCopy.Name, fromCollection.GetName())
+
 	return changelog, nil
 }
 
-func (move Movement) Execute(gameState *GameState, player *Player.Player) (Changelog, error) {
-	changelog := Changelog{}
+func (move Movement) Execute(gameState *GameState, playerId string) (Changelog, error) {
+	changelog := Changelog{
+		CurrentPlayer:    gameState.CurrentPlayer,
+		MostRecentAction: "",
+	}
 	var err error = nil
 
-	playerToUse := findPlayerInGameState(player.Id, gameState)
+	playerToUse := findPlayerInGameState(playerId, gameState)
 	if playerToUse == nil {
 		return changelog, fmt.Errorf("could not find player in gamestate")
 	}
@@ -161,6 +175,132 @@ func (move Movement) Execute(gameState *GameState, player *Player.Player) (Chang
 	//Update appropriate Views, set changelog and return
 	takingFromView.Pieces.Orphans = slices.DeleteFunc(takingFromView.Pieces.Orphans, func(c Pieces.Card) bool { return c.Id == pieceToMove.Id })
 	intoView.Pieces.Orphans = append(intoView.Pieces.Orphans, copy)
+
+	changelog.MostRecentAction = fmt.Sprintf("Player '%s' moved card '%s' to (%f, %f)", playerToUse.Name, copy.Name, copy.X, copy.Y)
+
+	return changelog, nil
+}
+
+func (et EndTurn) Execute(gameState *GameState, playerId string) (Changelog, error) {
+	changelog := Changelog{
+		CurrentPlayer:    gameState.CurrentPlayer,
+		MostRecentAction: "",
+	}
+
+	//Get index of player whose turn it is
+	currentPlayerIndex := slices.IndexFunc(gameState.Players, func(p Player.Player) bool { return p.Id == gameState.CurrentPlayer })
+
+	if currentPlayerIndex < 0 {
+		return changelog, fmt.Errorf("could not find current player in gameState.Players")
+	}
+
+	nextPlayerIndex := currentPlayerIndex //Default to not changing anything if something goes wrong
+	if et.NextPlayer != "" {
+		nextPlayerIndex = slices.IndexFunc(gameState.Players, func(p Player.Player) bool { return p.Id == et.NextPlayer })
+
+		if nextPlayerIndex < 0 {
+			return changelog, fmt.Errorf("could not find player to give turn to")
+		}
+	} else {
+		//Get ID of next player (wrap if necessary)
+		nextPlayerIndex = currentPlayerIndex + 1
+		if nextPlayerIndex >= len(gameState.Players) {
+			nextPlayerIndex -= len(gameState.Players)
+		}
+	}
+
+	nextPlayerId := gameState.Players[nextPlayerIndex].Id
+
+	//Update gameState and changelog
+	gameState.CurrentPlayer = nextPlayerId
+	changelog.CurrentPlayer = nextPlayerId
+
+	changelog.MostRecentAction = fmt.Sprintf("Player '%s' ended their turn. Next player is '%s'", gameState.Players[currentPlayerIndex].Name, gameState.Players[nextPlayerIndex].Name)
+
+	//return
+	return changelog, nil
+}
+
+func (cf Cardflip) Execute(gameState *GameState, playerId string) (Changelog, error) {
+	changelog := Changelog{
+		CurrentPlayer: gameState.CurrentPlayer,
+	}
+
+	player := findPlayerInGameState(playerId, gameState)
+
+	if player == nil {
+		return changelog, fmt.Errorf("could not find player in GameState")
+	}
+
+	parentView := findView(gameState, player, cf.InView)
+
+	if parentView == nil {
+		return changelog, fmt.Errorf("could not find view with Id == {%s} in GameState", cf.InView)
+	}
+
+	changelog.Views = append(changelog.Views, parentView)
+
+	cardToFlip := findCardInOrphans(cf.FlipCard, parentView)
+
+	if cardToFlip == nil {
+		return changelog, fmt.Errorf("could not find card with Id == {%s} in View", cf.FlipCard)
+	}
+
+	cardToFlip.Flipped = !cardToFlip.Flipped
+
+	changelog.MostRecentAction = fmt.Sprintf("Player '%s' flipped over card '%s'", player.Name, cardToFlip.Name)
+
+	return changelog, nil
+}
+
+func (reshuffle Reshuffle) Execute(gameState *GameState, playerId string) (Changelog, error) {
+	changelog := Changelog{
+		CurrentPlayer: gameState.CurrentPlayer,
+	}
+	var err error = nil
+
+	playerToUse := findPlayerInGameState(playerId, gameState)
+	if playerToUse == nil {
+		return changelog, fmt.Errorf("could not find player in gamestate")
+	}
+
+	//IMPORTANT: DO ALL ERROR-CHECKING BEFORE CHANGING THE GAMESTATE
+
+	//Check for Views first so we can get them in the Changelog if applicable
+	takingFromView := findView(gameState, playerToUse, reshuffle.InView)
+	if takingFromView == nil {
+		err = fmt.Errorf("could not find View to take from with Id == {%s}", reshuffle.InView)
+	} else {
+		changelog.Views = append(changelog.Views, takingFromView)
+	}
+
+	toView := findView(gameState, playerToUse, reshuffle.ToView)
+	if toView == nil {
+		err = fmt.Errorf("could not find View to insert into with Id == {%s}", reshuffle.ToView)
+	} else {
+		changelog.Views = append(changelog.Views, toView)
+	}
+
+	if err != nil {
+		return changelog, err
+	}
+
+	reshuffleCollection := findCollectionInView(reshuffle.ShuffleCardPlace, takingFromView)
+
+	reshuffleCardPlace, ok := reshuffleCollection.(*Pieces.CardPlace)
+	if !ok {
+		return changelog, fmt.Errorf("could not find CardPlace to reshuffle in given View")
+	}
+
+	intoCollection := findCollectionInView(reshuffle.IntoDeck, toView)
+	reshuffleDeck, ok := intoCollection.(*Pieces.Deck)
+	if !ok {
+		return changelog, fmt.Errorf("could not find Deck to reshuffle into with Id == {%s} in given View", reshuffle.IntoDeck)
+	}
+
+	transferAllCards(reshuffleCardPlace, reshuffleDeck)
+
+	changelog.MostRecentAction = fmt.Sprintf("Player '%s' reshuffled CardPlace '%s' into Deck '%s'", playerToUse.Name, reshuffleCardPlace.Name, reshuffleDeck.Name)
 
 	return changelog, nil
 }
@@ -207,4 +347,16 @@ func findPlayerInGameState(playerId string, gameState *GameState) *Player.Player
 		}
 	}
 	return nil
+}
+
+func transferAllCards(cardPlace *Pieces.CardPlace, deck *Pieces.Deck) {
+	//Copy all cards into the deck
+	cardCopy := Pieces.Card{}
+	for i := range cardPlace.Cards {
+		card := &cardPlace.Cards[i]
+		cardCopy = *card
+		deck.Cards = append(deck.Cards, cardCopy)
+	}
+	//Remove all cards from the CardPlace
+	cardPlace.Cards = slices.DeleteFunc(cardPlace.Cards, func(cp Pieces.Card) bool { return true })
 }

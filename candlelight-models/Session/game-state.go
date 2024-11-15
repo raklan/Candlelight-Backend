@@ -12,6 +12,9 @@ const (
 	ActionType_Insertion  = "Insertion"
 	ActionType_Withdrawal = "Withdrawal"
 	ActionType_Movement   = "Movement"
+	ActionType_EndTurn    = "EndTurn"
+	ActionType_CardFlip   = "Cardflip"
+	ActionType_Reshuffle  = "Reshuffle"
 )
 
 /*
@@ -27,8 +30,12 @@ type GameState struct {
 	GameName string `json:"gameName"`
 	//A list of the states of each Player in the game.
 	Players []Player.Player `json:"players"`
-	//The player whose turn it currently is
-	//CurrentPlayer Player.Player `json:"currentPlayer"`
+	//Id of the Player whose turn it currently is
+	CurrentPlayer string `json:"currentPlayer"`
+	//Text that should be shown to all players upon joining the game. Should be scrubbed before use to prevent XSS because it is used as InnerHTML
+	SplashText string `json:"splashText"`
+	//Set of rules Candlelight should use while running this game
+	Rules Game.GameRules `json:"rules"`
 	//The pieces (and their locations) as they are currently
 	Views []Game.View `json:"views"`
 }
@@ -37,7 +44,12 @@ type GameState struct {
 // as those objects' new states. One of these is generated and returned any time a Client submits an action,
 // regardless of whether the action was successful.
 type Changelog struct {
+	//Any views that were affected by the most recent SubmittedAction, represented as their current state after applying the Action
 	Views []*Game.View `json:"views"`
+	//Id of the Player whose turn it is after applying the most recent SubmittedAction
+	CurrentPlayer string `json:"currentPlayer"`
+	//A description of the action that just took place. Will be empty if the most recent SubmittedAction had no effect for any reason
+	MostRecentAction string `json:"mostRecentAction"`
 }
 
 // This is the way the frontend will send data to the backend during gameplay. They will
@@ -48,8 +60,8 @@ type SubmittedAction struct {
 	Type string `json:"type"`
 	//The actual turn object. Should have all the fields within the struct that you're wanting
 	Turn json.RawMessage `json:"turn"`
-	//The player who is trying to submit this action
-	Player Player.Player `json:"player"`
+	//ID of the player who is trying to submit this action. This is now supplied by the backend
+	PlayerId string `json:"playerId"`
 }
 
 // An Insertion is defined as a Player inserting an Orphan into a Card Collection, whether that's a Deck or CardPlace
@@ -90,8 +102,32 @@ type Withdrawal struct {
 	ToView string `json:"toView"`
 }
 
+type EndTurn struct {
+	//Optional string specifying the ID of the player who should be given the next turn. If not specified, the turn will pass to whichever player is next in
+	//the gameState's player list, wrapping around in the event of the last player submitting an EndTurn
+	NextPlayer string `json:"nextPlayer"`
+}
+
+type Cardflip struct {
+	//Id of the card which should be flipped to its opposite side as that which is showing. This card must be an Orphan
+	FlipCard string `json:"flipCard"`
+	//Id of the View in which [FlipCard] can be found
+	InView string `json:"inView"`
+}
+
+type Reshuffle struct {
+	//Id of the CardPlace to reshuffle the cards from
+	ShuffleCardPlace string `json:"shuffleCardPlace"`
+	//Id of the View in which the CardPlace is found
+	InView string `json:"inView"`
+	//Id of the View in which the Deck is found
+	ToView string `json:"toView"`
+	//Id of the Deck to reshuffle into
+	IntoDeck string `json:"intoDeck"`
+}
+
 // One of the possible Turn objects. This is solely for backend reference, and you should not have
 // to ever think about this on the frontend
 type Turn interface {
-	Execute(gameState *GameState, player *Player.Player) (Changelog, error)
+	Execute(gameState *GameState, playerId string) (Changelog, error)
 }

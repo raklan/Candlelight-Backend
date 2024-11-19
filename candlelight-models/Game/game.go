@@ -18,6 +18,8 @@ type Game struct {
 	Author string `json:"author"`
 	//Max number of allowed players in this Game
 	MaxPlayers int `json:"maxPlayers"`
+	//Whether this game should be shown to everyone instead of just the Author
+	Published bool `json:"published"`
 	//Set of Rules Candlelight should use while running this Game. See GameRules struct
 	Rules GameRules `json:"rules"`
 	//Sparks configured for this Game

@@ -20,8 +20,8 @@ type Criteria struct {
 // Returns true IFF for each array in Criteria, if any values are given, the Game's matching field
 // must be equal to one of the values in that array. If an array is empty, the Game automatically passes
 // that part of the Criteria
-func (c Criteria) Check(game Game.Game) bool {
-	return (len(c.Authors) == 0 || slices.Contains(c.Authors, game.Author)) &&
+func (c Criteria) Check(game Game.Game) bool { //TODO: Make better solution for published filtering
+	return ((len(c.Authors) == 0 && game.Published) || slices.Contains(c.Authors, game.Author)) &&
 		(len(c.Genres) == 0 || slices.Contains(c.Genres, game.Genre))
 }
 

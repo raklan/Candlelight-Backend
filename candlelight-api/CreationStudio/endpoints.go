@@ -300,10 +300,11 @@ func GenerateJSON(w http.ResponseWriter, r *http.Request) {
 	deckId := Engine.GenerateId()
 
 	game := Game.Game{
-		Id:     "game123",
-		Name:   "Shuffled Deck of Cards",
-		Genre:  "Card",
-		Author: "Candlelight Dev Team (Beta Release)",
+		Id:        "game123",
+		Name:      "Shuffled Deck of Cards",
+		Genre:     "Card",
+		Author:    "CandlelightDevTeam",
+		Published: true,
 		Rules: Game.GameRules{
 			ShowOtherPlayerDetails: true,
 			EnforceTurnOrder:       true,

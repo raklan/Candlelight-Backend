@@ -462,6 +462,15 @@ func SubmitAction(gameId string, action Session.SubmittedAction) (Session.Change
 	if gameState.Rules.EnforceTurnOrder {
 		if gameState.CurrentPlayer != action.PlayerId {
 			log.Printf("Player %s has tried to submit an action when it's not their turn. (CurrentPlayer == %s) Ignoring action", action.PlayerId, gameState.CurrentPlayer)
+			//Add every view to the changelog as unchanged so any rejected action from the client gets overwritten
+			for _, view := range gameState.Views {
+				changelog.Views = append(changelog.Views, &view)
+			}
+			for _, player := range gameState.Players {
+				for _, view := range player.Hand {
+					changelog.Views = append(changelog.Views, &view)
+				}
+			}
 			return changelog, fmt.Errorf("Your action was rejected because it's not your turn!") //Error message formatted for display directly to user as requested by Brian
 		}
 	}

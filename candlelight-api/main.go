@@ -14,7 +14,7 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-const SERVER_VERSION = "v1.0.1 - Nov 19 2024"
+const SERVER_VERSION = "v1.0.2 - Nov 21 2024"
 
 func main() {
 	startServer()
@@ -44,6 +44,7 @@ func startServer() {
 	registerPathHandlers(mux)
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"},
+		AllowedMethods: []string{"HEAD", "GET", "POST", "DELETE"},
 	})
 	handler := c.Handler(mux)
 

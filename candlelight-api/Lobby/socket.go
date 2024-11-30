@@ -427,19 +427,19 @@ func endPlayerConnection(roomCode string, playerId string, room map[string]*webs
 		return Session.Lobby{}, err
 	}
 
-	//Tell the client that the connection is closing, then close connection
-	conn := room[playerId]
-	msg := WebsocketMessage{
-		Type: WebsocketMessage_Close,
-		Data: SocketClose{
-			Message: "Player has been removed from Lobby. Closing connection",
-		},
+	//If the removed client has a currently open connection, tell that the client that the connection is closing, then close connection
+	if conn, exists := room[playerId]; exists {
+		msg := WebsocketMessage{
+			Type: WebsocketMessage_Close,
+			Data: SocketClose{
+				Message: "Player has been removed from Lobby. Closing connection",
+			},
+		}
+		conn.WriteJSON(msg)
+		conn.Close()
+		//Remove connection from lobby map so we don't try to send them any more messages
+		delete(room, playerId)
 	}
-	conn.WriteJSON(msg)
-	conn.Close()
-
-	//Remove connection from lobby map so we don't try to send them any more messages
-	delete(room, playerId)
 
 	return updatedLobby, nil
 }

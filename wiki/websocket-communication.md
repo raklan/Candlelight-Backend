@@ -40,7 +40,7 @@ If the host of a lobby sends this message, it will end the game, mark the Lobby 
 ```
 
 ### submitAction
-A client will send this message any time they want to affect something within the gamestate. Regardless of whether this action changes anything, every client in the lobby will receive a [Changelog](#changelog). The object within the `data` field should be one of the accepted [SubmittedActions](https://capstone-cs.eng.utah.edu/candlelight/candlelight-backend/-/wikis/Submitted-Actions)
+A client will send this message any time they want to affect something within the gamestate. Regardless of whether this action changes anything, every client in the lobby will receive a [Changelog](#changelog). The object within the `data` field should be one of the accepted [SubmittedActions](https://github.com/raklan/Candlelight-Backend/blob/main/wiki/submitted-actions.md)
 ```json
 {
   "jsonType": "submitAction",

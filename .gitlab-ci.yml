@@ -1,4 +1,4 @@
-# File has been edited slightly to remove sensitive info such as IP addresses and passwords. Alterations marked by [__bracketed double underscores__]
+# File has been edited slightly to remove sensitive info such as IP addresses and passwords. Alterations marked by [__bracketed double underscores__]. Before you go looking for the docker CLI password in the commit history, I've already deactivated it, don't worry. :)
 
 # CI/CD pipeline for Ryan's Gitlab Runner to automate deployment of new backend code
 

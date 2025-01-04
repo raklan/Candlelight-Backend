@@ -1,8 +1,8 @@
 # Overview
-Actions that are sent through the websocket with the intent of the backend applying some action on behalf of a client should be wrapped in a [SubmitAction](https://capstone-cs.eng.utah.edu/candlelight/candlelight-backend/-/wikis/Websocket-Communication#submitaction) message. Within the `data` field of that object, clients should put a [SubmittedAction](#submittedaction)-type object.
+Actions that are sent through the websocket with the intent of the backend applying some action on behalf of a client should be wrapped in a [SubmitAction](https://github.com/raklan/Candlelight-Backend/blob/main/wiki/websocket-communication.md#submitaction) message. Within the `data` field of that object, clients should put a [SubmittedAction](#submittedaction)-type object.
 
 # SubmittedAction
-The SubmittedAction is designed to be place in the `data` field of a [SubmitAction](https://capstone-cs.eng.utah.edu/candlelight/candlelight-backend/-/wikis/Websocket-Communication#submitaction) message. They have the following structure: 
+The SubmittedAction is designed to be place in the `data` field of a [SubmitAction](https://github.com/raklan/Candlelight-Backend/blob/main/wiki/websocket-communication.md#submitaction) message. They have the following structure: 
 ```json
 {
   "type": "the string type. See below for options",

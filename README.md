@@ -5,3 +5,5 @@ The backend code for my Senior Capstone project, written over the course of 2024
 During development, I also created a wiki outlining a bit more about how the code works. These wiki pages have been copied into the [wiki folder](https://github.com/raklan/Candlelight-Backend/tree/main/wiki) with only alterations to fix links between pages
 
 To run the code, you can simply run `docker compose build` then `docker compose up` from the root directory, or if you want to run it manually, ensure that redis is running on your machine, then run `go run ./candlelight-api` from the root directory
+
+This repository is simply a showcase of something I worked on; I do not plan to revisit or change the code at all from this point forward.
